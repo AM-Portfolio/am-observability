@@ -1,0 +1,139 @@
+apiVersion: am.obs/v1
+kind: SignalCatalog
+# Frozen Phase 1 signals. Dialects live ONLY in adapter_map — never in templates.
+signals:
+  http_request_rate:
+    id: http_request_rate
+    kind: metric
+    description: HTTP server request rate (Spring Micrometer)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
+
+  http_error_rate:
+    id: http_error_rate
+    kind: metric
+    description: HTTP 5xx request rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m]))
+
+  http_latency_p95:
+    id: http_latency_p95
+    kind: metric
+    description: HTTP request latency p95
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace"}[5m])) by (le))
+
+  jvm_heap_used:
+    id: jvm_heap_used
+    kind: metric
+    description: JVM heap used bytes
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          jvm_memory_used_bytes{application="$application",area="heap"}
+
+  jvm_gc_pause:
+    id: jvm_gc_pause
+    kind: metric
+    description: JVM GC pause rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          rate(jvm_gc_pause_seconds_sum{application="$application"}[5m])
+
+  k8s_cpu_usage:
+    id: k8s_cpu_usage
+    kind: metric
+    description: Container CPU usage (cAdvisor)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*"}[5m]))
+
+  k8s_memory_usage:
+    id: k8s_memory_usage
+    kind: metric
+    description: Container memory working set
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*"})
+
+  k8s_restarts:
+    id: k8s_restarts
+    kind: metric
+    description: Pod container restart total (kube-state-metrics)
+    panel_type: stat
+    adapters: [prometheus]
+    optional: true
+    omit_warn: "Requires kube-state-metrics; omit+warn if missing on cluster"
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"})
+
+  service_health_up:
+    id: service_health_up
+    kind: metric
+    description: Prometheus scrape target up
+    panel_type: stat
+    adapters: [prometheus]
+    optional: true
+    omit_warn: "Omit+warn if no matching up{} series"
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          up{job=~".*$app.*",namespace="$namespace"}
+
+  service_logs_all:
+    id: service_logs_all
+    kind: log
+    description: All service logs for namespace+app
+    panel_type: logs
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: '{namespace="$namespace",app="$app"}'
+
+  service_error_logs:
+    id: service_error_logs
+    kind: log
+    description: Error-level service logs
+    panel_type: logs
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          {namespace="$namespace",app="$app"} | json | level=~"(?i)error|fatal|err"
+
+  trace_latency_p95:
+    id: trace_latency_p95
+    kind: trace
+    description: Tempo explore link for service latency
+    panel_type: link
+    adapters: [tempo]
+    adapter_map:
+      tempo:
+        link_template: >-
+          /explore?orgId=1&left=["now-1h","now","Tempo",{"query":"{$service=$service}","queryType":"traceql"}]
+        search: 'service.name="$service"'

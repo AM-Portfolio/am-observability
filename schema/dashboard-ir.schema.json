@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/dashboard-ir.schema.json",
+  "title": "DashboardIR",
+  "description": "Internal representation after compose; before adapt/render.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["uid", "title", "panels"],
+  "properties": {
+    "uid": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "folder": { "type": "string" },
+    "service": { "type": "string" },
+    "panels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "signal"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "signal": { "type": "string" },
+          "kind": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

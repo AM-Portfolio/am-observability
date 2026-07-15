@@ -1,0 +1,23 @@
+apiVersion: am.obs/v1
+kind: ObservabilityBindings
+env: preprod
+
+# UIDs must match Grafana datasources in am-infra (explicit uid fields).
+# Locked: prometheus / loki / tempo (lowercase).
+inputs:
+  metrics:
+    adapter: prometheus
+    datasource_uid: prometheus
+  logs:
+    adapter: loki
+    datasource_uid: loki
+  traces:
+    adapter: tempo
+    datasource_uid: tempo
+
+outputs:
+  dashboards:
+    renderer: grafana
+    publisher: grafana_configmap
+    namespace: monitoring
+    folder: "AM / Technical"

@@ -1,0 +1,25 @@
+# Label / variable conventions for Phase 1 adapters.
+apiVersion: am.obs/v1
+kind: LabelCatalog
+
+prometheus:
+  # Spring Actuator / Micrometer application label value comes from
+  # manifest.metrics_application (fallback: service id).
+  service_label: application
+  namespace_label: namespace
+
+loki:
+  # Promtail relabels app.kubernetes.io/name or app → app
+  namespace_label: namespace
+  app_label: app
+
+tempo:
+  service_attribute: service.name
+
+variables:
+  # Substituted at generate time from the service manifest
+  service: "$service"
+  namespace: "$namespace"
+  app: "$app"                   # = k8s_app_label (Loki / pod selector)
+  application: "$application"   # = metrics_application or service (PromQL)
+  env: "$env"                   # derived from namespace suffix (am-apps-preprod → preprod)

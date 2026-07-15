@@ -1,0 +1,13 @@
+# Service registry (pointers only — manifests live in each service repo)
+# Set enabled: true when that pilot/wave is ready for generate.
+services:
+  - id: am-portfolio
+    repo: am-portfolio
+    path: observability.yaml
+    ref: main
+    enabled: true
+  - id: am-logging
+    repo: am-logging
+    path: observability.yaml
+    ref: main
+    enabled: false

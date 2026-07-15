@@ -1,0 +1,90 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: service-overview
+title: "Technical / {{ service }}"
+folder: "AM / Technical"
+# Panel dialects forbidden — only signal refs. Generator intersects with signals.uses.
+panels:
+  - id: http_request_rate
+    signal: http_request_rate
+    title: Request rate
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_error_rate
+    signal: http_error_rate
+    title: Error rate (5xx)
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_latency_p95
+    signal: http_latency_p95
+    title: Latency p95
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: service_health_up
+    signal: service_health_up
+    title: Health (up)
+    type: stat
+    width: 6
+    height: 4
+
+  - id: k8s_restarts
+    signal: k8s_restarts
+    title: Restarts
+    type: stat
+    width: 6
+    height: 4
+
+  - id: jvm_heap_used
+    signal: jvm_heap_used
+    title: JVM heap used
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: jvm_gc_pause
+    signal: jvm_gc_pause
+    title: JVM GC pause rate
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: k8s_cpu_usage
+    signal: k8s_cpu_usage
+    title: CPU usage
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: k8s_memory_usage
+    signal: k8s_memory_usage
+    title: Memory usage
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: service_logs_all
+    signal: service_logs_all
+    title: Logs
+    type: logs
+    width: 24
+    height: 10
+
+  - id: service_error_logs
+    signal: service_error_logs
+    title: Error logs
+    type: logs
+    width: 24
+    height: 8
+
+  - id: trace_latency_p95
+    signal: trace_latency_p95
+    title: Traces (Tempo)
+    type: link
+    width: 24
+    height: 3

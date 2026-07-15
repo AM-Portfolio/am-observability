@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/service-observability.schema.json",
+  "title": "ServiceObservability",
+  "description": "Per-service observability manifest (lives in each service repo).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "apiVersion",
+    "kind",
+    "service",
+    "tier",
+    "runtime",
+    "k8s_app_label",
+    "namespace",
+    "signals"
+  ],
+  "properties": {
+    "apiVersion": { "type": "string", "const": "am.obs/v1" },
+    "kind": { "type": "string", "const": "ServiceObservability" },
+    "service": { "type": "string", "minLength": 1 },
+    "tier": { "type": "string", "enum": ["A", "B"] },
+    "runtime": { "type": "string", "enum": ["java", "python"] },
+    "k8s_app_label": { "type": "string", "minLength": 1 },
+    "namespace": { "type": "string", "minLength": 1 },
+    "metrics_application": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Prometheus/Micrometer application label (defaults to service). Use when spring.application.name differs from service id."
+    },
+    "owners": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "signals": {
+      "type": "object",
+      "required": ["uses"],
+      "properties": {
+        "uses": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": true
+    },
+    "functional": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

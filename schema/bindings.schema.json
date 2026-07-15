@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/bindings.schema.json",
+  "title": "ObservabilityBindings",
+  "description": "Per-environment input adapters and output renderers/publishers.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["inputs", "outputs"],
+  "properties": {
+    "apiVersion": { "type": "string" },
+    "kind": { "type": "string" },
+    "env": { "type": "string" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["adapter", "datasource_uid"],
+        "properties": {
+          "adapter": { "type": "string", "minLength": 1 },
+          "datasource_uid": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["renderer", "publisher"],
+        "properties": {
+          "renderer": { "type": "string", "minLength": 1 },
+          "publisher": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

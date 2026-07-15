@@ -1,0 +1,17 @@
+apiVersion: am.obs/v1
+kind: ServiceObservability
+service: am-logging
+tier: B
+runtime: python
+k8s_app_label: am-logging
+namespace: am-apps-preprod
+owners: [platform]
+signals:
+  uses:
+    - k8s_cpu_usage
+    - k8s_memory_usage
+    - k8s_restarts
+    - service_logs_all
+    - service_error_logs
+    - service_health_up
+functional: []

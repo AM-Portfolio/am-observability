@@ -1,0 +1,14 @@
+# Which signal kinds each input adapter can fulfill.
+apiVersion: am.obs/v1
+kind: AdapterCapabilities
+
+adapters:
+  prometheus:
+    kinds: [metric]
+  loki:
+    kinds: [log]
+  tempo:
+    kinds: [trace, link]
+  # Phase 3 stub slot — not selected by default bindings
+  stub_metrics:
+    kinds: [metric]

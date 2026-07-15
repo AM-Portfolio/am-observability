@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/registry.schema.json",
+  "title": "ServiceRegistry",
+  "description": "Pointers to service observability manifests (not the manifests themselves).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["services"],
+  "properties": {
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "repo", "path", "ref", "enabled"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "repo": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "ref": { "type": "string", "minLength": 1 },
+          "enabled": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

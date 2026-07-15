@@ -1,0 +1,7 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: domain-kpi
+title: "Functional / {{ service }}"
+folder: "AM / Functional"
+# Present for schema completeness. Generator skips when manifest.functional is [].
+panels: []

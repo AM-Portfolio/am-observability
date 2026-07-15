@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/signal-catalog.schema.json",
+  "title": "SignalCatalog",
+  "description": "Frozen signal IDs and adapter maps for compose/adapt.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["apiVersion", "kind", "signals"],
+  "properties": {
+    "apiVersion": { "type": "string" },
+    "kind": { "type": "string", "const": "SignalCatalog" },
+    "signals": {
+      "type": "object",
+      "minProperties": 0,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["metric", "log", "trace", "link"]
+          },
+          "description": { "type": "string" },
+          "adapters": {
+            "oneOf": [
+              { "type": "array", "items": { "type": "string" } },
+              { "type": "object" }
+            ]
+          },
+          "adapter_map": { "type": "object" },
+          "panel_type": { "type": "string" },
+          "optional": { "type": "boolean" },
+          "omit_warn": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}
