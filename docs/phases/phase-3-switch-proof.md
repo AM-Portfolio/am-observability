@@ -16,7 +16,7 @@
 
 ### 3.2 Binding example
 
-- [ ] Add `bindings/preprod-switch-demo.yaml` (not default) selecting stub
+- [ ] Add `bindings/platform-switch-demo.yaml` (not default) selecting stub
 - [ ] Document: Grafana UI + foreign logs still needs am-infra datasource
 
 ### 3.3 am-infra checklist doc
@@ -29,16 +29,16 @@
 
 ### 3.4 Implement stub + test
 
-- [ ] Generator accepts alternate `--binding bindings/preprod-switch-demo.yaml`
+- [ ] Generator accepts alternate `--binding bindings/platform-switch-demo.yaml`
 - [ ] Golden or unit test: template files unchanged; only adapt/publish output differs
 
 ---
 
 ## Verification {#verification}
 
-1. [ ] `make generate --binding bindings/preprod-switch-demo.yaml --only am-portfolio` succeeds
+1. [ ] `make generate --binding bindings/platform-switch-demo.yaml --only am-portfolio` succeeds
 2. [ ] Diff shows **no** template file changes required
-3. [ ] Default `bindings/preprod.yaml` generate still matches Phase 1 goldens
+3. [ ] Default `bindings/platform.yaml` generate still matches Phase 1 goldens
 4. [ ] Ops checklist reviewed by someone who can edit am-infra
 5. [ ] README mentions how to switch feeds vs UI
 

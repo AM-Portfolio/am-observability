@@ -1,9 +1,11 @@
 apiVersion: am.obs/v1
 kind: ObservabilityBindings
-env: preprod
+# Shared LGTM stack (one Grafana/Prometheus/Loki/Tempo for am-apps-*).
+# Env (preprod/prod/dev) is selected via Grafana $namespace and/or each
+# service observability.yaml — not via separate binding files.
+env: platform
 
-# UIDs must match Grafana datasources in am-infra (explicit uid fields).
-# Locked: prometheus / loki / tempo (lowercase).
+# Stable UIDs — must match am-infra grafana-datasources-configmap.yaml.
 inputs:
   metrics:
     adapter: prometheus

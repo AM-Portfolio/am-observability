@@ -14,7 +14,7 @@
 - [x] `catalog/signals.yaml` with Phase 1 signal IDs + `adapter_map` expr templates
 - [x] `catalog/labels.yaml`
 - [x] `adapters/capabilities.yaml`
-- [x] `bindings/preprod.yaml` (prometheus / loki / tempo datasource UIDs)
+- [x] `bindings/platform.yaml` (prometheus / loki / tempo datasource UIDs; shared across app envs)
 - [x] `templates/technical/service-overview.yaml` (signal refs only — no dialects)
 - [x] `templates/functional/domain-kpi.yaml` (skipped when `functional: []`)
 

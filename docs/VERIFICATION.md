@@ -12,7 +12,7 @@ Run these checks before marking a phase `[x]` in [TRACKING.md](TRACKING.md). Pre
 | ConfigMap | `grafana-dashboard-{uid}` label `grafana_dashboard: "1"` |
 | Pin path | `am-infra/k8s/grafana/dashboards/` |
 | Version file | `am-infra/.../OBSERVABILITY_VERSION` or sibling |
-| Binding | `bindings/preprod.yaml` |
+| Binding | `bindings/platform.yaml` (shared LGTM; app env via `$namespace`) |
 
 ---
 

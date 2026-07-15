@@ -1,0 +1,22 @@
+{
+  "name": "am-observability",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Script facade for the Python observability generator (validate / test / generate)",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "setup": "python -m pip install -r requirements.txt",
+    "validate": "python gen.py validate",
+    "test": "python -m pytest -q",
+    "test:verbose": "python -m pytest -vv",
+    "goldens:update": "python -m pytest -q --update-goldens",
+    "generate": "python gen.py generate",
+    "generate:portfolio": "python gen.py generate --only am-portfolio",
+    "generate:logging": "python gen.py generate --only am-logging",
+    "generate:continue": "python gen.py generate --continue",
+    "ci": "npm run validate && npm run test",
+    "preflight": "npm run setup && npm run ci && npm run generate:portfolio"
+  }
+}

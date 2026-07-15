@@ -1,10 +1,10 @@
-"""Adapt IR panels with vendor queries + datasource_uid from bindings."""
+"""Adapt IR panels via input adapters selected by bindings."""
 
 from __future__ import annotations
 
-from string import Template
 from typing import Any
 
+from adapters import loki, prometheus, tempo
 from am_obs.loader import Context
 
 KIND_TO_INPUT = {
@@ -14,16 +14,11 @@ KIND_TO_INPUT = {
     "link": "traces",
 }
 
-DATASOURCE_TYPE = {
-    "prometheus": "prometheus",
-    "loki": "loki",
-    "tempo": "tempo",
+ADAPTERS = {
+    "prometheus": prometheus,
+    "loki": loki,
+    "tempo": tempo,
 }
-
-
-def _subst(template: str, vars_: dict[str, str]) -> str:
-    # Use safe_substitute so unknown $tokens remain (Grafana vars later).
-    return Template(template).safe_substitute(**vars_)
 
 
 def adapt(ir: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], list[str]]:
@@ -35,43 +30,29 @@ def adapt(ir: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], list[str]]:
         signal_id = panel["signal"]
         signal = ctx.signals[signal_id]
         kind = signal["kind"]
-        adapter = panel["adapter"]
+        adapter_name = panel["adapter"]
         input_key = KIND_TO_INPUT[kind]
         binding = (ctx.bindings.get("inputs") or {})[input_key]
         datasource_uid = binding["datasource_uid"]
-        ds_type = DATASOURCE_TYPE.get(adapter, adapter)
+        adapter_map = (signal.get("adapter_map") or {}).get(adapter_name) or {}
 
-        adapter_map = (signal.get("adapter_map") or {}).get(adapter) or {}
-        panel_out = dict(panel)
-        panel_out["datasource"] = {"type": ds_type, "uid": datasource_uid}
-
-        if kind == "metric":
-            expr_t = adapter_map.get("expr_template")
-            if not expr_t:
-                warnings.append(f"omit {signal_id}: missing prometheus expr_template")
-                continue
-            panel_out["expr"] = _subst(expr_t, vars_)
-        elif kind == "log":
-            expr_t = adapter_map.get("expr_template")
-            if not expr_t:
-                warnings.append(f"omit {signal_id}: missing loki expr_template")
-                continue
-            panel_out["expr"] = _subst(expr_t, vars_)
-        elif kind in ("trace", "link"):
-            search = adapter_map.get("search") or f'service.name="{vars_["service"]}"'
-            panel_out["search"] = _subst(search, vars_)
-            link_t = adapter_map.get("link_template")
-            if link_t:
-                panel_out["url"] = _subst(link_t, vars_)
-            else:
-                panel_out["url"] = (
-                    f'/explore?orgId=1&left=%5B"now-1h","now","Tempo",'
-                    f'%7B"query":"{panel_out["search"]}"%7D%5D'
-                )
-        else:
-            warnings.append(f"omit {signal_id}: unsupported kind {kind}")
+        mod = ADAPTERS.get(adapter_name)
+        if mod is None:
+            warnings.append(f"omit {signal_id}: unknown adapter {adapter_name}")
             continue
 
+        panel_out, err = mod.adapt_panel(
+            panel,
+            adapter_map=adapter_map,
+            datasource_uid=datasource_uid,
+            vars_=vars_,
+            signal_id=signal_id,
+        )
+        if err:
+            warnings.append(err)
+            continue
+        if panel_out is None:
+            continue
         adapted_panels.append(panel_out)
 
     out = dict(ir)

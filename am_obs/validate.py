@@ -72,7 +72,7 @@ def validate_all(ctx: Context | None = None) -> list[str]:
 
     # Additional binding YAML files (if any)
     for path in sorted((root / "bindings").glob("*.yaml")):
-        if path.name == "preprod.yaml" and ctx.bindings:
+        if path.name == "platform.yaml" and ctx.bindings:
             continue
         data = load_yaml(path)
         if data:

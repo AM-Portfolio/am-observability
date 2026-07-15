@@ -20,7 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--binding",
         type=Path,
         default=None,
-        help="Bindings file (default: bindings/preprod.yaml)",
+        help="Bindings file (default: bindings/platform.yaml)",
     )
     p_validate.set_defaults(func=_run_validate)
 
@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--binding",
         type=Path,
         default=None,
-        help="Bindings file (default: bindings/preprod.yaml)",
+        help="Bindings file (default: bindings/platform.yaml)",
     )
     p_generate.add_argument(
         "--fixture",

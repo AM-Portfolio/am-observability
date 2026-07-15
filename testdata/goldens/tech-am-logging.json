@@ -11,6 +11,80 @@
   "panels": [
     {
       "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "{namespace=\"$namespace\",pod=~\"$app.*\"}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 2,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "{namespace=\"$namespace\",pod=~\"$app.*\"} |~ \"(?i)error|exception|fatal|failed\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Error logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
@@ -22,11 +96,11 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 8,
         "x": 0,
-        "y": 0
+        "y": 16
       },
-      "id": 1,
+      "id": 3,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -48,11 +122,11 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "up{job=~\".*am-logging.*\",namespace=\"am-apps-preprod\"}",
+          "expr": "max(up{job=\"kubernetes-pods\",namespace=\"$namespace\",pod=~\"$app.*\"})\n  or max(up{kubernetes_namespace=\"$namespace\",kubernetes_pod_name=~\"$app.*\"})",
           "refId": "A"
         }
       ],
-      "title": "Health (up)",
+      "title": "Scrape health (up)",
       "type": "stat"
     },
     {
@@ -68,11 +142,11 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
+        "w": 8,
+        "x": 8,
+        "y": 16
       },
-      "id": 2,
+      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -94,12 +168,51 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"am-apps-preprod\",pod=~\"am-logging.*\"})",
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"$namespace\",pod=~\"$app.*\"})",
           "refId": "A"
         }
       ],
-      "title": "Restarts",
+      "title": "Container restarts",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\",pod=~\"$app.*\",container!=\"\",container!=\"POD\"}[5m]))",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Container CPU usage",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -114,144 +227,31 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"am-apps-preprod\",pod=~\"am-logging.*\"}[5m]))",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "CPU usage",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
-      "id": 4,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum(container_memory_working_set_bytes{namespace=\"am-apps-preprod\",pod=~\"am-logging.*\"})",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Memory usage",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 16
-      },
-      "id": 5,
-      "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "{namespace=\"am-apps-preprod\",app=\"am-logging\"}",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Logs",
-      "type": "logs"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 26
+        "y": 20
       },
       "id": 6,
       "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
       },
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "prometheus",
+            "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "{namespace=\"am-apps-preprod\",app=\"am-logging\"} | json | level=~\"(?i)error|fatal|err\"",
-          "queryType": "range",
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"$app.*\",container!=\"\",container!=\"POD\"})",
+          "legendFormat": "__auto",
+          "range": true,
           "refId": "A"
         }
       ],
-      "title": "Error logs",
-      "type": "logs"
+      "title": "Container memory usage",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
@@ -266,34 +266,92 @@
   "templating": {
     "list": [
       {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "custom",
+        "hide": 0,
+        "multi": false,
+        "includeAll": false,
+        "query": "am-apps-preprod,am-apps-prod,am-apps-dev",
         "current": {
+          "selected": true,
           "text": "am-apps-preprod",
           "value": "am-apps-preprod"
         },
-        "hide": 2,
-        "name": "namespace",
-        "query": "am-apps-preprod",
-        "type": "constant"
+        "options": [
+          {
+            "selected": true,
+            "text": "am-apps-preprod",
+            "value": "am-apps-preprod"
+          },
+          {
+            "selected": false,
+            "text": "am-apps-prod",
+            "value": "am-apps-prod"
+          },
+          {
+            "selected": false,
+            "text": "am-apps-dev",
+            "value": "am-apps-dev"
+          }
+        ]
       },
       {
-        "current": {
-          "text": "am-logging",
-          "value": "am-logging"
-        },
-        "hide": 2,
         "name": "service",
+        "label": "Service",
+        "type": "textbox",
+        "hide": 0,
         "query": "am-logging",
-        "type": "constant"
-      },
-      {
         "current": {
+          "selected": true,
           "text": "am-logging",
           "value": "am-logging"
         },
-        "hide": 2,
+        "options": [
+          {
+            "selected": true,
+            "text": "am-logging",
+            "value": "am-logging"
+          }
+        ]
+      },
+      {
         "name": "app",
+        "label": "App (pod prefix)",
+        "type": "textbox",
+        "hide": 0,
         "query": "am-logging",
-        "type": "constant"
+        "current": {
+          "selected": true,
+          "text": "am-logging",
+          "value": "am-logging"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "am-logging",
+            "value": "am-logging"
+          }
+        ]
+      },
+      {
+        "name": "application",
+        "label": "Metrics application",
+        "type": "textbox",
+        "hide": 0,
+        "query": "am-logging",
+        "current": {
+          "selected": true,
+          "text": "am-logging",
+          "value": "am-logging"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "am-logging",
+            "value": "am-logging"
+          }
+        ]
       }
     ]
   },

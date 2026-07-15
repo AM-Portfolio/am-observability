@@ -1,17 +1,54 @@
 apiVersion: am.obs/v1
 kind: SignalCatalog
-# Frozen Phase 1 signals. Dialects live ONLY in adapter_map — never in templates.
+# Dialects live ONLY in adapter_map — never in templates.
+# Spring/Micrometer HTTP+JVM need micrometer-registry-prometheus on the service.
 signals:
+  # ── HTTP / API ──────────────────────────────────────────────
   http_request_rate:
     id: http_request_rate
     kind: metric
-    description: HTTP server request rate (Spring Micrometer)
+    description: HTTP server request rate (all APIs)
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
           sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
+        legend: "all"
+
+  http_requests_by_status:
+    id: http_requests_by_status
+    kind: metric
+    description: HTTP request rate broken down by status code (200/4xx/5xx)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (status) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
+        legend: "{{status}}"
+
+  http_requests_2xx:
+    id: http_requests_2xx
+    kind: metric
+    description: Successful HTTP responses (2xx)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"2.."}[5m]))
+
+  http_requests_4xx:
+    id: http_requests_4xx
+    kind: metric
+    description: Client error HTTP responses (4xx)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"4.."}[5m]))
 
   http_error_rate:
     id: http_error_rate
@@ -27,7 +64,7 @@ signals:
   http_latency_p95:
     id: http_latency_p95
     kind: metric
-    description: HTTP request latency p95
+    description: HTTP request latency p95 (all APIs)
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
@@ -35,6 +72,56 @@ signals:
         expr_template: >-
           histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace"}[5m])) by (le))
 
+  http_latency_p95_by_uri:
+    id: http_latency_p95_by_uri
+    kind: metric
+    description: HTTP p95 latency by URI (top endpoints)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          topk(8, histogram_quantile(0.95, sum by (uri, le) (rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",uri!~".*actuator.*"}[5m]))))
+        legend: "{{uri}}"
+
+  http_requests_by_uri:
+    id: http_requests_by_uri
+    kind: metric
+    description: HTTP request rate by API path (excludes actuator)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          topk(10, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",uri!~".*actuator.*"}[5m])))
+        legend: "{{method}} {{uri}}"
+
+  http_requests_by_outcome:
+    id: http_requests_by_outcome
+    kind: metric
+    description: HTTP rate by Micrometer outcome (SUCCESS / CLIENT_ERROR / SERVER_ERROR)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (outcome) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
+        legend: "{{outcome}}"
+
+  http_client_request_rate:
+    id: http_client_request_rate
+    kind: metric
+    description: Outbound HTTP client call rate (WebClient/RestTemplate)
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (client_name, uri, status) (rate(http_client_requests_seconds_count{application="$application"}[5m]))
+        legend: "{{client_name}} {{status}}"
+
+  # ── JVM / process (OOM / CPU pressure) ──────────────────────
   jvm_heap_used:
     id: jvm_heap_used
     kind: metric
@@ -45,6 +132,29 @@ signals:
       prometheus:
         expr_template: >-
           jvm_memory_used_bytes{application="$application",area="heap"}
+        legend: "{{id}}"
+
+  jvm_heap_max:
+    id: jvm_heap_max
+    kind: metric
+    description: JVM heap max bytes
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          jvm_memory_max_bytes{application="$application",area="heap"}
+
+  jvm_nonheap_used:
+    id: jvm_nonheap_used
+    kind: metric
+    description: JVM non-heap used bytes (metaspace etc.)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          jvm_memory_used_bytes{application="$application",area="nonheap"}
 
   jvm_gc_pause:
     id: jvm_gc_pause
@@ -56,7 +166,142 @@ signals:
       prometheus:
         expr_template: >-
           rate(jvm_gc_pause_seconds_sum{application="$application"}[5m])
+        legend: "{{action}}"
 
+  jvm_threads_live:
+    id: jvm_threads_live
+    kind: metric
+    description: Live JVM threads (thread leak signal)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          jvm_threads_live_threads{application="$application"}
+
+  process_cpu_usage:
+    id: process_cpu_usage
+    kind: metric
+    description: Process CPU usage ratio (0-1)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          process_cpu_usage{application="$application"}
+
+  process_files_open:
+    id: process_files_open
+    kind: metric
+    description: Open file descriptors
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          process_files_open_files{application="$application"}
+
+  system_cpu_usage:
+    id: system_cpu_usage
+    kind: metric
+    description: System CPU usage ratio (0-1)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          system_cpu_usage{application="$application"}
+
+  logback_events:
+    id: logback_events
+    kind: metric
+    description: Logback event rate by level (error/warn/info)
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (level) (rate(logback_events_total{application="$application"}[5m]))
+        legend: "{{level}}"
+
+  tomcat_threads_busy:
+    id: tomcat_threads_busy
+    kind: metric
+    description: Busy Tomcat request threads (saturation)
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          tomcat_threads_busy_threads{application="$application"}
+
+  # ── Data stores / messaging (optional — empty until binders emit) ──
+  mongo_commands:
+    id: mongo_commands
+    kind: metric
+    description: MongoDB driver command rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (command) (rate(mongodb_driver_commands_seconds_count{application="$application"}[5m]))
+        legend: "{{command}}"
+
+  mongo_pool_checkedout:
+    id: mongo_pool_checkedout
+    kind: metric
+    description: MongoDB connection pool checked-out connections
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          mongodb_driver_pool_checkedout{application="$application"}
+
+  redis_commands:
+    id: redis_commands
+    kind: metric
+    description: Redis/Lettuce command rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(lettuce_command_completion_seconds_count{application="$application"}[5m]))
+
+  kafka_listener:
+    id: kafka_listener
+    kind: metric
+    description: Spring Kafka listener invoke rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (name) (rate(spring_kafka_listener_seconds_count{application="$application"}[5m]))
+        legend: "{{name}}"
+
+  kafka_listener_errors:
+    id: kafka_listener_errors
+    kind: metric
+    description: Spring Kafka listener error rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (name) (rate(spring_kafka_listener_seconds_count{application="$application",result="failure"}[5m]))
+        legend: "{{name}}"
+
+  # ── Kubernetes ──────────────────────────────────────────────
   k8s_cpu_usage:
     id: k8s_cpu_usage
     kind: metric
@@ -66,7 +311,7 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*"}[5m]))
+          sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}[5m]))
 
   k8s_memory_usage:
     id: k8s_memory_usage
@@ -77,7 +322,7 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*"})
+          sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"})
 
   k8s_restarts:
     id: k8s_restarts
@@ -95,25 +340,26 @@ signals:
   service_health_up:
     id: service_health_up
     kind: metric
-    description: Prometheus scrape target up
+    description: Prometheus scrape target up for this pod
     panel_type: stat
     adapters: [prometheus]
     optional: true
-    omit_warn: "Omit+warn if no matching up{} series"
     adapter_map:
       prometheus:
         expr_template: >-
-          up{job=~".*$app.*",namespace="$namespace"}
+          max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
+            or max(up{kubernetes_namespace="$namespace",kubernetes_pod_name=~"$app.*"})
 
+  # ── Logs / traces ───────────────────────────────────────────
   service_logs_all:
     id: service_logs_all
     kind: log
-    description: All service logs for namespace+app
+    description: All service logs for namespace+pod prefix
     panel_type: logs
     adapters: [loki]
     adapter_map:
       loki:
-        expr_template: '{namespace="$namespace",app="$app"}'
+        expr_template: '{namespace="$namespace",pod=~"$app.*"}'
 
   service_error_logs:
     id: service_error_logs
@@ -124,7 +370,7 @@ signals:
     adapter_map:
       loki:
         expr_template: >-
-          {namespace="$namespace",app="$app"} | json | level=~"(?i)error|fatal|err"
+          {namespace="$namespace",pod=~"$app.*"} |~ "(?i)error|exception|fatal|failed"
 
   trace_latency_p95:
     id: trace_latency_p95
@@ -135,5 +381,5 @@ signals:
     adapter_map:
       tempo:
         link_template: >-
-          /explore?orgId=1&left=["now-1h","now","Tempo",{"query":"{$service=$service}","queryType":"traceql"}]
+          /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$service}","queryType":"traceql"}]
         search: 'service.name="$service"'

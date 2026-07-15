@@ -8,7 +8,7 @@ Use when `bindings` point logs/metrics/traces at a provider Grafana does not alr
 - [ ] Add credentials via existing secret/Vault pattern — never commit secrets to am-observability
 - [ ] Reload/restart Grafana if required
 - [ ] Explore → test a manual query against the new datasource
-- [ ] Update `am-observability/bindings/{env}.yaml` `datasource_uid`
+- [ ] Update `am-observability/bindings/platform.yaml` (or a dedicated switch-demo binding) `datasource_uid`
 - [ ] `make generate` + pin + deploy
 - [ ] Verify dashboard panels using that input
 - [ ] Document rollback (revert binding + ConfigMaps + remove datasource if unused)

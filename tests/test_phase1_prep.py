@@ -16,7 +16,8 @@ GOLDENS = ROOT / "testdata" / "goldens"
 FIXTURES = ROOT / "testdata" / "fixtures"
 
 
-def test_metrics_application_substituted():
+def test_metrics_application_as_grafana_var():
+    """application stays a Grafana $var (not baked) so the Metrics application filter works."""
     ctx = load_context()
     manifest = yaml.safe_load((FIXTURES / "am-portfolio.yaml").read_text(encoding="utf-8"))
     dashboard, _, _, err = generate_one(manifest, ctx, source="fixture")
@@ -27,8 +28,12 @@ def test_metrics_application_substituted():
             if "expr" in t:
                 exprs.append(t["expr"])
     joined = "\n".join(exprs)
-    assert 'application="portfolio-app"' in joined
-    assert 'application="am-portfolio"' not in joined
+    assert "$application" in joined or "${application}" in joined
+    assert 'application="portfolio-app"' not in joined
+    # Visible filter variables present
+    names = {v["name"] for v in dashboard["templating"]["list"]}
+    assert names >= {"namespace", "service", "app", "application"}
+    assert all(v.get("hide", 0) == 0 for v in dashboard["templating"]["list"])
 
 
 def test_validate_platform_ok():

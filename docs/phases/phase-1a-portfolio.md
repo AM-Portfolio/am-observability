@@ -14,7 +14,7 @@ Do **not** enable am-logging until this phase verifies.
 ### 1a.0 Phase 1 prep (if not done)
 
 - [x] Land frozen signals + adapter maps in `catalog/signals.yaml` (see plan / ARCHITECTURE)
-- [x] `bindings/preprod.yaml` with datasource UIDs matching am-infra
+- [x] `bindings/platform.yaml` with datasource UIDs matching am-infra (shared monitoring stack)
 - [x] `templates/technical/service-overview.yaml`
 - [x] Adapters: prometheus, loki, tempo (+ capabilities)
 - [x] Renderer + `grafana_configmap` publisher

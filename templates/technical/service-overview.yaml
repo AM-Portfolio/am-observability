@@ -3,83 +3,229 @@ kind: DashboardTemplate
 id: service-overview
 title: "Technical / {{ service }}"
 folder: "AM / Technical"
-# Panel dialects forbidden — only signal refs. Generator intersects with signals.uses.
+# Signal refs only — no PromQL/LogQL here.
+
 panels:
-  - id: http_request_rate
-    signal: http_request_rate
-    title: Request rate
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: http_error_rate
-    signal: http_error_rate
-    title: Error rate (5xx)
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: http_latency_p95
-    signal: http_latency_p95
-    title: Latency p95
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: service_health_up
-    signal: service_health_up
-    title: Health (up)
-    type: stat
-    width: 6
-    height: 4
-
-  - id: k8s_restarts
-    signal: k8s_restarts
-    title: Restarts
-    type: stat
-    width: 6
-    height: 4
-
-  - id: jvm_heap_used
-    signal: jvm_heap_used
-    title: JVM heap used
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: jvm_gc_pause
-    signal: jvm_gc_pause
-    title: JVM GC pause rate
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: k8s_cpu_usage
-    signal: k8s_cpu_usage
-    title: CPU usage
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: k8s_memory_usage
-    signal: k8s_memory_usage
-    title: Memory usage
-    type: timeseries
-    width: 12
-    height: 8
-
+  # ── Logs first (works without app scrape) ──
   - id: service_logs_all
     signal: service_logs_all
     title: Logs
     type: logs
     width: 24
-    height: 10
+    height: 9
 
   - id: service_error_logs
     signal: service_error_logs
     title: Error logs
     type: logs
     width: 24
+    height: 7
+
+  # ── HTTP / API ──
+  - id: http_request_rate
+    signal: http_request_rate
+    title: Request rate (all APIs)
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: http_requests_2xx
+    signal: http_requests_2xx
+    title: Success 2xx
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: http_error_rate
+    signal: http_error_rate
+    title: Failures 5xx
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: http_requests_by_status
+    signal: http_requests_by_status
+    title: Requests by status code
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_requests_4xx
+    signal: http_requests_4xx
+    title: Client errors 4xx
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_requests_by_uri
+    signal: http_requests_by_uri
+    title: Per-API request rate (top 10)
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_requests_by_outcome
+    signal: http_requests_by_outcome
+    title: Requests by outcome
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_client_request_rate
+    signal: http_client_request_rate
+    title: Outbound HTTP client calls
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_latency_p95
+    signal: http_latency_p95
+    title: Latency p95 (all)
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: http_latency_p95_by_uri
+    signal: http_latency_p95_by_uri
+    title: Latency p95 by API
+    type: timeseries
+    width: 24
+    height: 8
+
+  # ── JVM / process ──
+  - id: jvm_heap_used
+    signal: jvm_heap_used
+    title: JVM heap used
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: jvm_heap_max
+    signal: jvm_heap_max
+    title: JVM heap max
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: jvm_nonheap_used
+    signal: jvm_nonheap_used
+    title: JVM non-heap used
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: jvm_gc_pause
+    signal: jvm_gc_pause
+    title: JVM GC pause rate
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: jvm_threads_live
+    signal: jvm_threads_live
+    title: JVM live threads
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: process_cpu_usage
+    signal: process_cpu_usage
+    title: Process CPU usage
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: process_files_open
+    signal: process_files_open
+    title: Open file descriptors
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: system_cpu_usage
+    signal: system_cpu_usage
+    title: System CPU usage
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: logback_events
+    signal: logback_events
+    title: Log events by level
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: tomcat_threads_busy
+    signal: tomcat_threads_busy
+    title: Tomcat busy threads
+    type: timeseries
+    width: 8
+    height: 8
+
+  - id: service_health_up
+    signal: service_health_up
+    title: Scrape health (up)
+    type: stat
+    width: 8
+    height: 4
+
+  - id: k8s_restarts
+    signal: k8s_restarts
+    title: Container restarts
+    type: stat
+    width: 8
+    height: 4
+
+  # ── Mongo / Redis / Kafka ──
+  - id: mongo_commands
+    signal: mongo_commands
+    title: MongoDB commands
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: mongo_pool_checkedout
+    signal: mongo_pool_checkedout
+    title: MongoDB pool checked-out
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: redis_commands
+    signal: redis_commands
+    title: Redis commands
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: kafka_listener
+    signal: kafka_listener
+    title: Kafka listener rate
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: kafka_listener_errors
+    signal: kafka_listener_errors
+    title: Kafka listener failures
+    type: timeseries
+    width: 12
+    height: 8
+
+  # ── Kubernetes resource pressure ──
+  - id: k8s_cpu_usage
+    signal: k8s_cpu_usage
+    title: Container CPU usage
+    type: timeseries
+    width: 12
+    height: 8
+
+  - id: k8s_memory_usage
+    signal: k8s_memory_usage
+    title: Container memory usage
+    type: timeseries
+    width: 12
     height: 8
 
   - id: trace_latency_p95

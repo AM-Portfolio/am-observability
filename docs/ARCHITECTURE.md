@@ -46,6 +46,10 @@ Changing log provider while keeping Grafana still requires an **am-infra Grafana
 
 Acceptance env: **`am-apps-preprod`**.
 
+## Bindings vs app env
+
+Shared LGTM (one `monitoring` stack for `am-apps-preprod|prod|dev`): use a **single** binding file [`bindings/platform.yaml`](../bindings/platform.yaml). App environment is selected via Grafana `$namespace` and/or each service `observability.yaml` `namespace:` — not via `bindings/prod.yaml` copies. Only add another binding when datasource UIDs or the monitoring cluster differ.
+
 ## Scale (50+)
 
 - Source of truth: `{service-repo}/observability.yaml`

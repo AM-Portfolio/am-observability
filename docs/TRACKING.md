@@ -27,7 +27,7 @@ Mark items `[x]` only after the **verification** for that step passes (see [VERI
 
 - [x] Frozen Phase 1 signals landed in `catalog/signals.yaml` with adapter maps
 - [x] `catalog/labels.yaml` + `adapters/capabilities.yaml`
-- [x] `bindings/preprod.yaml` with prometheus/loki/tempo datasource UIDs
+- [x] `bindings/platform.yaml` with prometheus/loki/tempo datasource UIDs (shared LGTM; env via Grafana `$namespace`)
 - [x] Technical template `templates/technical/service-overview.yaml`
 - [x] Functional template present but skipped when `functional: []`
 - [x] Pipeline: validate → compose → adapt → render → publish

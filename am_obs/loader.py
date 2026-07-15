@@ -31,7 +31,7 @@ def load_context(
     root: Path | None = None,
 ) -> Context:
     root = root or ROOT
-    binding = binding or (root / "bindings" / "preprod.yaml")
+    binding = binding or (root / "bindings" / "platform.yaml")
     return Context(
         root=root,
         catalog=load_yaml(root / "catalog" / "signals.yaml") or {},
