@@ -1037,7 +1037,7 @@ def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
             ),
             {
                 "name": "user_id",
-                "label": "User (hashed)",
+                "label": "User (user_id)",
                 "type": "textbox",
                 "hide": 0,
                 "query": ".*",
