@@ -149,10 +149,12 @@ jobs:
           # treated that as fatal and left tags without Releases.
           for attempt in 1 2 3; do
             if [[ "$CREATE" == "true" ]]; then
+              # Title must be the tag (vX.Y.Z). Naming it "am-observability vX.Y.Z"
+              # causes ops to paste the title into obs-upgrade and fail download.
               if gh release create "$VERSION" "${ASSETS[@]}" \
                 --verify-tag \
                 --generate-notes \
-                --title "am-observability ${VERSION}" \
+                --title "${VERSION}" \
                 --latest; then
                 break
               fi
