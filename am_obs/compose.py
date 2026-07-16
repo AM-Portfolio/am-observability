@@ -189,6 +189,12 @@ def _panel_candidates(
                         "legend_calcs",
                         "transparent",
                         "latency_slo",
+                        "orientation",
+                        "display_mode",
+                        "show_all_values",
+                        "instant",
+                        "pie_type",
+                        "y_unit",
                     )
                     if k in panel
                 },
@@ -339,6 +345,71 @@ def compose_shared_functional(
             "app": default["app"],
             "application": default["application"],
             "env": env,
+        },
+    }
+    return ir, warnings
+
+
+PLATFORM_NAMESPACES = [
+    "infra",
+    "infra-preprod",
+    "infra-prod",
+    "infra-dev",
+    "identity",
+    "billing",
+    "notification",
+    "vault",
+    "monitoring",
+]
+
+
+def compose_platform(
+    template: dict[str, Any],
+    ctx: Context,
+    *,
+    namespace: str = "infra",
+    pod: str = ".*",
+    namespaces: list[str] | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    """Platform / infra dashboard IR (no service dropdown; namespace + pod vars)."""
+    warnings: list[str] = []
+    ns_opts = namespaces or PLATFORM_NAMESPACES
+    if namespace not in ns_opts:
+        ns_opts = [namespace, *ns_opts]
+
+    panels_out = _panel_candidates(ctx, template=template, uses=None, warnings=warnings)
+
+    uid = str(template.get("uid") or template.get("id") or "platform")
+    title = str(template.get("title") or f"Platform / {uid}")
+    folder = str(template.get("folder") or "AM / Platform")
+    platform_filters = list(template.get("platform_filters") or [])
+
+    ir = {
+        "apiVersion": "am.obs/v1",
+        "kind": "Dashboard",
+        "dashboard_kind": "platform",
+        "uid": uid,
+        "title": title,
+        "folder": folder,
+        "grafana_folder_path": "platform",
+        "service": "platform",
+        "namespace": namespace,
+        "app": "platform",
+        "application": "platform",
+        "env": "platform",
+        "tags": ["am", "platform", uid],
+        "panels": panels_out,
+        "namespace_options": ns_opts,
+        "platform_filters": platform_filters,
+        "vars": {
+            "service": "platform",
+            "namespace": namespace,
+            "app": "platform",
+            "application": "platform",
+            "env": "platform",
+            "pod": pod,
+            "topic": ".*",
+            "consumergroup": ".*",
         },
     }
     return ir, warnings

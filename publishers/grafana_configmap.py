@@ -12,6 +12,7 @@ def publish(
     *,
     namespace: str = "monitoring",
     out_dir: Path,
+    folder_path: str | None = None,
 ) -> Path:
     uid = dashboard["uid"]
     cm_name = f"grafana-dashboard-{uid}"
@@ -22,12 +23,22 @@ def publish(
     indented = "\n".join(
         ("    " + line) if line else "" for line in dashboard_json.splitlines()
     )
+
+    annotations = ""
+    if folder_path:
+        # kiwigrid sidecar FOLDER_ANNOTATION → subdir under /var/lib/grafana/dashboards
+        annotations = (
+            "  annotations:\n"
+            f'    grafana_folder: "{folder_path}"\n'
+        )
+
     text = (
         "apiVersion: v1\n"
         "kind: ConfigMap\n"
         "metadata:\n"
         f"  name: {cm_name}\n"
         f"  namespace: {namespace}\n"
+        f"{annotations}"
         "  labels:\n"
         '    grafana_dashboard: "1"\n'
         f"    am.obs/uid: {uid}\n"

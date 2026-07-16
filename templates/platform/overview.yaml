@@ -1,0 +1,96 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: platform-overview
+uid: platform-overview
+title: "Platform / Overview"
+folder: "AM / Platform"
+# cAdvisor view of every platform namespace (infra, identity, billing, …)
+
+panels:
+  - id: row_summary
+    type: row
+    title: "0 · Namespace summary"
+
+  - id: text_summary
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Platform overview** — Pick a **Namespace** (infra · identity · billing · notification · vault · monitoring).
+      Shows pod count, CPU, memory from cAdvisor. Deep exporters (Redis, Mongo, …) live on their own Platform dashboards.
+
+  - id: platform_ns_pod_count
+    signal: platform_ns_pod_count
+    title: Pods
+    type: stat
+    unit: short
+    decimals: 0
+    width: 6
+    height: 4
+    color_mode: value
+    transparent: true
+
+  - id: platform_ns_cpu_total
+    signal: platform_ns_cpu_total
+    title: CPU (cores)
+    type: stat
+    unit: short
+    decimals: 2
+    width: 6
+    height: 4
+    color_mode: value
+    transparent: true
+
+  - id: platform_ns_memory_total
+    signal: platform_ns_memory_total
+    title: Memory
+    type: stat
+    unit: bytes
+    decimals: 1
+    width: 6
+    height: 4
+    color_mode: value
+    transparent: true
+
+  - id: row_resources
+    type: row
+    title: "1 · Resources by pod"
+
+  - id: platform_ns_cpu
+    signal: platform_ns_cpu
+    title: CPU by pod
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+    legend_calcs: [mean, max]
+
+  - id: platform_ns_memory
+    signal: platform_ns_memory
+    title: Memory by pod
+    type: timeseries
+    unit: bytes
+    width: 12
+    height: 8
+    legend: true
+    legend_calcs: [mean, max]
+
+  - id: row_logs
+    type: row
+    title: "2 · Logs"
+
+  - id: platform_ns_error_logs
+    signal: platform_ns_error_logs
+    title: Error logs
+    type: logs
+    width: 24
+    height: 8
+
+  - id: platform_ns_logs
+    signal: platform_ns_logs
+    title: All logs
+    type: logs
+    width: 24
+    height: 8

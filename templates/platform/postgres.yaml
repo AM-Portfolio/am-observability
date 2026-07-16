@@ -1,0 +1,71 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: platform-postgres
+uid: platform-postgres
+title: "Platform / PostgreSQL"
+folder: "AM / Platform"
+
+panels:
+  - id: row_health
+    type: row
+    title: "0 · Health"
+
+  - id: text_pg
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Infra PostgreSQL** — Metrics from `postgres-exporter` sidecar (namespace **infra**).
+      App Hikari pool panels stay on **Technical / Services**.
+
+  - id: infra_postgres_up
+    signal: infra_postgres_up
+    title: Postgres up
+    type: stat
+    unit: short
+    decimals: 0
+    width: 6
+    height: 4
+    color_mode: background
+
+  - id: infra_postgres_cache_hit
+    signal: infra_postgres_cache_hit
+    title: Cache hit ratio
+    type: gauge
+    unit: percentunit
+    decimals: 2
+    min: 0
+    max: 1
+    width: 6
+    height: 4
+
+  - id: row_runtime
+    type: row
+    title: "1 · Runtime"
+
+  - id: infra_postgres_connections
+    signal: infra_postgres_connections
+    title: Active connections
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_postgres_txns
+    signal: infra_postgres_txns
+    title: Commits / s
+    type: timeseries
+    unit: ops
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_postgres_deadlocks
+    signal: infra_postgres_deadlocks
+    title: Deadlocks / s
+    type: timeseries
+    unit: ops
+    width: 12
+    height: 8

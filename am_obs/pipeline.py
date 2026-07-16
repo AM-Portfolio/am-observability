@@ -11,6 +11,7 @@ from typing import Any
 from am_obs.adapt import adapt
 from am_obs.compose import (
     compose,
+    compose_platform,
     compose_shared,
     compose_shared_functional,
     target_from_manifest,
@@ -48,13 +49,20 @@ def resolve_manifest_path(entry: dict[str, Any], ctx: Context) -> Path | None:
 def _publish_dashboard(
     dashboard: dict[str, Any],
     ctx: Context,
+    *,
+    folder_path: str | None = None,
 ) -> Path:
     out_ns = (
         ((ctx.bindings.get("outputs") or {}).get("dashboards") or {}).get("namespace")
         or "monitoring"
     )
     out_dir = ctx.root / "dist" / "grafana"
-    return publish_grafana_configmap(dashboard, namespace=out_ns, out_dir=out_dir)
+    return publish_grafana_configmap(
+        dashboard,
+        namespace=out_ns,
+        out_dir=out_dir,
+        folder_path=folder_path,
+    )
 
 
 def generate_one(
@@ -73,8 +81,84 @@ def generate_one(
     adapted, w2 = adapt(ir, ctx)
     warnings.extend(w2)
     dashboard = render_grafana(adapted)
-    path = _publish_dashboard(dashboard, ctx)
+    path = _publish_dashboard(dashboard, ctx, folder_path="technical")
     return dashboard, path, warnings, None
+
+
+def generate_platform(
+    ctx: Context,
+    *,
+    only: str | None = None,
+) -> list[ServiceResult]:
+    """Generate Platform / * dashboards from infra/registry.yaml + templates/platform."""
+    results: list[ServiceResult] = []
+    preg = ctx.platform_registry or {}
+    defaults = preg.get("defaults") or {}
+    default_ns = str(defaults.get("namespace") or "infra")
+    ns_opts = list(defaults.get("namespaces") or [])
+    entries = list(preg.get("dashboards") or [])
+    if only:
+        entries = [e for e in entries if e.get("id") == only]
+        if not entries:
+            return [
+                ServiceResult(
+                    id=f"platform-{only}",
+                    ok=False,
+                    error=f"unknown platform dashboard id: {only}",
+                )
+            ]
+
+    for entry in entries:
+        if entry.get("enabled") is False:
+            continue
+        sid = str(entry["id"])
+        tpl_name = str(entry.get("template") or f"{sid}.yaml")
+        tpl_path = ctx.root / "templates" / "platform" / tpl_name
+        if not tpl_path.is_file():
+            results.append(
+                ServiceResult(
+                    id=f"platform-{sid}",
+                    ok=False,
+                    error=f"template not found: {tpl_path}",
+                )
+            )
+            continue
+
+        template = load_yaml(tpl_path)
+        if not isinstance(template, dict):
+            results.append(
+                ServiceResult(id=f"platform-{sid}", ok=False, error=f"invalid YAML: {tpl_path}")
+            )
+            continue
+
+        namespace = str(entry.get("namespace") or default_ns)
+        pod = str(entry.get("pod") or ".*")
+        entry_ns = entry.get("namespaces")
+        use_ns = list(entry_ns) if entry_ns else (ns_opts or None)
+        ir, w1 = compose_platform(
+            template,
+            ctx,
+            namespace=namespace,
+            pod=pod,
+            namespaces=use_ns,
+        )
+        adapted, w2 = adapt(ir, ctx)
+        dashboard = render_grafana(adapted)
+        path = _publish_dashboard(
+            dashboard,
+            ctx,
+            folder_path=str(ir.get("grafana_folder_path") or "platform"),
+        )
+        results.append(
+            ServiceResult(
+                id=str(dashboard.get("uid") or f"platform-{sid}"),
+                ok=True,
+                path=str(path),
+                uid=dashboard.get("uid"),
+                warnings=w1 + w2,
+            )
+        )
+    return results
 
 
 def generate_shared(
@@ -148,7 +232,7 @@ def generate_shared(
     adapted, w2 = adapt(ir, ctx)
     warnings_all.extend(w2)
     dashboard = render_grafana(adapted)
-    path = _publish_dashboard(dashboard, ctx)
+    path = _publish_dashboard(dashboard, ctx, folder_path="technical")
 
     results.append(
         ServiceResult(
@@ -167,7 +251,7 @@ def generate_shared(
         func_adapted, fw2 = adapt(func_ir, ctx)
         warnings_all.extend(fw2)
         func_dash = render_grafana(func_adapted)
-        func_path = _publish_dashboard(func_dash, ctx)
+        func_path = _publish_dashboard(func_dash, ctx, folder_path="technical")
         results.append(
             ServiceResult(
                 id="func-am-services",
@@ -220,20 +304,28 @@ def generate(
     fixture: Path | None = None,
     root: Path | None = None,
     shared: bool = True,
+    platform: bool = True,
+    platform_only: str | None = None,
 ) -> int:
     """
     Generate dashboards.
 
-    Default: one shared Technical / Services dashboard (Service dropdown).
+    Default: shared Technical / Services + Functional + Platform dashboards.
     --only / --fixture: per-service ConfigMap (compose ∩ signals.uses).
+    --platform-only ID: only that platform dashboard (overview, redis, …).
     """
     ctx = load_context(binding=binding, root=root or ROOT)
     results: list[ServiceResult] = []
 
     if fixture:
         shared = False
+        platform = False
     if only:
         shared = False
+        platform = False
+    if platform_only:
+        shared = False
+        platform = True
 
     if fixture:
         manifest = load_yaml(fixture)
@@ -300,52 +392,55 @@ def generate(
         entries = list(ctx.registry.get("services") or [])
         if not entries:
             print("no services in registry")
-            write_report(results, ctx.root / "dist" / "report.json")
-            return 0
-        _, _, results = generate_shared(
-            ctx, entries=entries, continue_on_error=continue_on_error
-        )
+        else:
+            _, _, results = generate_shared(
+                ctx, entries=entries, continue_on_error=continue_on_error
+            )
     else:
         # Legacy: enabled-only per-service ConfigMaps
         services = ctx.registry.get("services") or []
         selected = [e for e in services if e.get("enabled")]
         if not selected:
             print("no enabled services to generate")
-            write_report(results, ctx.root / "dist" / "report.json")
-            return 0
-        for entry in selected:
-            sid = entry["id"]
-            mpath = resolve_manifest_path(entry, ctx)
-            if mpath is None:
+        else:
+            for entry in selected:
+                sid = entry["id"]
+                mpath = resolve_manifest_path(entry, ctx)
+                if mpath is None:
+                    results.append(
+                        ServiceResult(
+                            id=sid,
+                            ok=False,
+                            error=f"manifest not found for {sid}",
+                        )
+                    )
+                    if not continue_on_error:
+                        break
+                    continue
+                manifest = load_yaml(mpath)
+                if not isinstance(manifest, dict):
+                    results.append(
+                        ServiceResult(id=sid, ok=False, error=f"invalid YAML: {mpath}")
+                    )
+                    if not continue_on_error:
+                        break
+                    continue
+                dashboard, path, warnings, err = generate_one(manifest, ctx, source=str(mpath))
                 results.append(
                     ServiceResult(
                         id=sid,
-                        ok=False,
-                        error=f"manifest not found for {sid}",
+                        ok=err is None,
+                        path=str(path) if path else None,
+                        uid=(dashboard or {}).get("uid") if dashboard else None,
+                        warnings=warnings,
+                        error=err,
                     )
                 )
-                if not continue_on_error:
+                if err and not continue_on_error:
                     break
-                continue
-            manifest = load_yaml(mpath)
-            if not isinstance(manifest, dict):
-                results.append(ServiceResult(id=sid, ok=False, error=f"invalid YAML: {mpath}"))
-                if not continue_on_error:
-                    break
-                continue
-            dashboard, path, warnings, err = generate_one(manifest, ctx, source=str(mpath))
-            results.append(
-                ServiceResult(
-                    id=sid,
-                    ok=err is None,
-                    path=str(path) if path else None,
-                    uid=(dashboard or {}).get("uid") if dashboard else None,
-                    warnings=warnings,
-                    error=err,
-                )
-            )
-            if err and not continue_on_error:
-                break
+
+    if platform:
+        results.extend(generate_platform(ctx, only=platform_only))
 
     report_path = ctx.root / "dist" / "report.json"
     write_report(results, report_path)

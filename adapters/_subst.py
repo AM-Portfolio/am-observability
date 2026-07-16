@@ -6,7 +6,18 @@ from string import Template
 
 # These become Grafana template variables (visible dropdowns / text boxes).
 GRAFANA_TEMPLATE_VARS = frozenset(
-    {"namespace", "service", "app", "application", "env", "uri", "method"}
+    {
+        "namespace",
+        "service",
+        "app",
+        "application",
+        "env",
+        "uri",
+        "method",
+        "pod",
+        "topic",
+        "consumergroup",
+    }
 )
 
 

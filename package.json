@@ -14,6 +14,7 @@
     "goldens:update": "python -m pytest -q --update-goldens",
     "generate": "python gen.py generate",
     "generate:shared": "python gen.py generate",
+    "generate:platform": "python gen.py generate --platform-only overview",
     "generate:portfolio": "python gen.py generate --only am-portfolio",
     "generate:logging": "python gen.py generate --only am-logging",
     "generate:continue": "python gen.py generate --continue",

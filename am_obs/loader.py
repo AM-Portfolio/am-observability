@@ -19,6 +19,7 @@ class Context:
     technical_template: dict[str, Any] = field(default_factory=dict)
     functional_template: dict[str, Any] = field(default_factory=dict)
     registry: dict[str, Any] = field(default_factory=dict)
+    platform_registry: dict[str, Any] = field(default_factory=dict)
 
     @property
     def signals(self) -> dict[str, Any]:
@@ -42,4 +43,5 @@ def load_context(
         or {},
         functional_template=load_yaml(root / "templates" / "functional" / "domain-kpi.yaml") or {},
         registry=load_yaml(root / "services" / "registry.yaml") or {},
+        platform_registry=load_yaml(root / "infra" / "registry.yaml") or {},
     )

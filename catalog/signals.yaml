@@ -215,7 +215,7 @@ signals:
     id: http_latency_worst_avg
     kind: metric
     description: Worst avg latency among APIs (seconds). Red when ge 5s.
-    panel_type: stat
+    panel_type: bargauge
     adapters: [prometheus]
     adapter_map:
       prometheus:
@@ -232,12 +232,14 @@ signals:
               1e-9
             )
           )
+          or vector(0)
+        legend: "worst avg"
 
   http_latency_slow_api_count:
     id: http_latency_slow_api_count
     kind: metric
     description: Count of APIs whose avg latency is ge 5 seconds
-    panel_type: stat
+    panel_type: bargauge
     adapters: [prometheus]
     adapter_map:
       prometheus:
@@ -257,53 +259,81 @@ signals:
             ) > 5
           )
           or vector(0)
+        legend: "APIs ≥5s"
 
   http_slo_under_1s:
     id: http_slo_under_1s
     kind: metric
     description: Fraction of requests completing under ~1s (histogram bucket). Empty if no buckets.
-    panel_type: stat
+    panel_type: bargauge
     adapters: [prometheus]
     optional: true
     adapter_map:
       prometheus:
         expr_template: >-
           (
-            sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="1.0"}[5m]))
-            or sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="1"}[5m]))
+            (
+              sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="1.0"}[5m]))
+              or sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="1"}[5m]))
+            )
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
           )
-          /
-          clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
+          or vector(0)
+        legend: "under 1s"
 
   http_slo_under_5s:
     id: http_slo_under_5s
     kind: metric
     description: Fraction of requests completing under ~5s (histogram bucket). Empty if no buckets.
-    panel_type: stat
+    panel_type: bargauge
     adapters: [prometheus]
     optional: true
     adapter_map:
       prometheus:
         expr_template: >-
           (
-            sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="5.0"}[5m]))
-            or sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="5"}[5m]))
+            (
+              sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="5.0"}[5m]))
+              or sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",le="5"}[5m]))
+            )
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
           )
-          /
-          clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
+          or vector(0)
+        legend: "under 5s"
+
+  http_latency_heatmap:
+    id: http_latency_heatmap
+    kind: metric
+    description: HTTP latency density from histogram buckets (heatmap).
+    panel_type: heatmap
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (le) (
+            rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])
+          )
+        legend: "{{le}}"
 
   http_success_ratio:
     id: http_success_ratio
     kind: metric
     description: Fraction of requests with 2xx status
-    panel_type: stat
+    panel_type: bargauge
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"2.."}[5m]))
-          /
-          clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
+          (
+            sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"2.."}[5m]))
+            /
+            clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
+          )
+          or vector(0)
+        legend: "2xx success"
 
   http_requests_by_uri:
     id: http_requests_by_uri
@@ -667,9 +697,14 @@ signals:
     optional: true
     adapter_map:
       prometheus:
+        # sum() so labeled series and vector(0) share one label set (no dual 0+1 tiles)
         expr_template: >-
-          portfolio_users_total{application="$application",namespace="$namespace"}
-          or portfolio_users{application="$application",namespace="$namespace"}
+          sum(
+            portfolio_users_total{application="$application",namespace="$namespace"}
+            or portfolio_users{application="$application",namespace="$namespace"}
+          )
+          or vector(0)
+        legend: "Users"
 
   portfolio_portfolios_total:
     id: portfolio_portfolios_total
@@ -681,8 +716,12 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          portfolio_portfolios_total{application="$application",namespace="$namespace"}
-          or portfolio_portfolios{application="$application",namespace="$namespace"}
+          sum(
+            portfolio_portfolios_total{application="$application",namespace="$namespace"}
+            or portfolio_portfolios{application="$application",namespace="$namespace"}
+          )
+          or vector(0)
+        legend: "Portfolios"
 
   portfolio_holdings_total:
     id: portfolio_holdings_total
@@ -694,8 +733,12 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          portfolio_holdings_total{application="$application",namespace="$namespace"}
-          or portfolio_holdings{application="$application",namespace="$namespace"}
+          sum(
+            portfolio_holdings_total{application="$application",namespace="$namespace"}
+            or portfolio_holdings{application="$application",namespace="$namespace"}
+          )
+          or vector(0)
+        legend: "Holdings"
 
   # ── JVM / process (OOM / CPU pressure) ──────────────────────
   jvm_heap_used:
@@ -801,6 +844,7 @@ signals:
       prometheus:
         expr_template: >-
           process_files_open_files{application="$application"}
+        legend: "open FDs"
 
   system_cpu_usage:
     id: system_cpu_usage
@@ -812,6 +856,7 @@ signals:
       prometheus:
         expr_template: >-
           system_cpu_usage{application="$application"}
+        legend: "system CPU"
 
   logback_events:
     id: logback_events
@@ -1442,3 +1487,455 @@ signals:
         link_template: >-
           /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$service}","queryType":"traceql"}]
         search: 'service.name="$service"'
+
+  # ── Platform / infra (server-side; namespace dropdown, not app $application) ──
+  platform_ns_pod_count:
+    id: platform_ns_pod_count
+    kind: metric
+    description: Running pod count in selected platform namespace (cAdvisor)
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          count(
+            count by (pod) (
+              container_memory_working_set_bytes{namespace="$namespace",container!="",container!="POD"}
+            )
+          )
+
+  platform_ns_cpu:
+    id: platform_ns_cpu
+    kind: metric
+    description: CPU usage by pod in platform namespace
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{pod}}"
+        expr_template: >-
+          sum by (pod) (
+            rate(container_cpu_usage_seconds_total{namespace="$namespace",container!="",container!="POD"}[5m])
+          )
+
+  platform_ns_memory:
+    id: platform_ns_memory
+    kind: metric
+    description: Memory working set by pod in platform namespace
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{pod}}"
+        expr_template: >-
+          sum by (pod) (
+            container_memory_working_set_bytes{namespace="$namespace",container!="",container!="POD"}
+          )
+
+  platform_ns_cpu_total:
+    id: platform_ns_cpu_total
+    kind: metric
+    description: Total CPU cores used in platform namespace
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",container!="",container!="POD"}[5m]))
+
+  platform_ns_memory_total:
+    id: platform_ns_memory_total
+    kind: metric
+    description: Total memory working set in platform namespace
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(container_memory_working_set_bytes{namespace="$namespace",container!="",container!="POD"})
+
+  platform_ns_logs:
+    id: platform_ns_logs
+    kind: log
+    description: All logs for selected platform namespace
+    panel_type: logs
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: '{namespace="$namespace"}'
+
+  platform_ns_error_logs:
+    id: platform_ns_error_logs
+    kind: log
+    description: Error-level logs for platform namespace
+    panel_type: logs
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          {namespace="$namespace"} |~ "(?i)error|exception|fatal|failed|panic"
+
+  infra_redis_up:
+    id: infra_redis_up
+    kind: metric
+    description: Redis exporter scrape up (infra redis)
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          max(redis_up{namespace="$namespace",pod=~"$pod"})
+            or max(up{namespace="$namespace",pod=~"$pod",job="kubernetes-pods"})
+
+  infra_redis_clients:
+    id: infra_redis_clients
+    kind: metric
+    description: Redis connected clients
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: clients
+        expr_template: >-
+          redis_connected_clients{namespace="$namespace",pod=~"$pod"}
+
+  infra_redis_memory:
+    id: infra_redis_memory
+    kind: metric
+    description: Redis used memory
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: used
+        expr_template: >-
+          redis_memory_used_bytes{namespace="$namespace",pod=~"$pod"}
+
+  infra_redis_commands:
+    id: infra_redis_commands
+    kind: metric
+    description: Redis commands processed rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: commands/s
+        expr_template: >-
+          rate(redis_commands_processed_total{namespace="$namespace",pod=~"$pod"}[5m])
+
+  infra_redis_hit_ratio:
+    id: infra_redis_hit_ratio
+    kind: metric
+    description: Redis keyspace hit ratio
+    panel_type: gauge
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(redis_keyspace_hits_total{namespace="$namespace",pod=~"$pod"}[5m]))
+          /
+          clamp_min(
+            sum(rate(redis_keyspace_hits_total{namespace="$namespace",pod=~"$pod"}[5m]))
+            + sum(rate(redis_keyspace_misses_total{namespace="$namespace",pod=~"$pod"}[5m])),
+            1e-9
+          )
+
+  infra_redis_blocked:
+    id: infra_redis_blocked
+    kind: metric
+    description: Redis blocked clients
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: blocked
+        expr_template: >-
+          redis_blocked_clients{namespace="$namespace",pod=~"$pod"}
+
+  infra_mongo_up:
+    id: infra_mongo_up
+    kind: metric
+    description: MongoDB exporter scrape up
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          max(mongodb_up{namespace="$namespace",pod=~"$pod"})
+            or max(up{namespace="$namespace",pod=~"$pod",job="kubernetes-pods"})
+
+  infra_mongo_connections:
+    id: infra_mongo_connections
+    kind: metric
+    description: MongoDB current connections
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: current
+        expr_template: >-
+          mongodb_connections{namespace="$namespace",pod=~"$pod",state="current"}
+            or mongodb_ss_connections{namespace="$namespace",pod=~"$pod",conn_type="current"}
+
+  infra_mongo_ops:
+    id: infra_mongo_ops
+    kind: metric
+    description: MongoDB operations rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{type}}"
+        expr_template: >-
+          sum by (type) (
+            rate(mongodb_op_counters_total{namespace="$namespace",pod=~"$pod"}[5m])
+          )
+            or sum by (type) (
+              rate(mongodb_ss_opcounters{namespace="$namespace",pod=~"$pod"}[5m])
+            )
+
+  infra_mongo_memory:
+    id: infra_mongo_memory
+    kind: metric
+    description: MongoDB resident memory
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: resident
+        expr_template: >-
+          mongodb_memory{namespace="$namespace",pod=~"$pod",type="resident"}
+            or mongodb_ss_mem_resident{namespace="$namespace",pod=~"$pod"}
+
+  infra_postgres_up:
+    id: infra_postgres_up
+    kind: metric
+    description: Postgres exporter scrape up
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          max(pg_up{namespace="$namespace",pod=~"$pod"})
+            or max(up{namespace="$namespace",pod=~"$pod",job="kubernetes-pods"})
+
+  infra_postgres_connections:
+    id: infra_postgres_connections
+    kind: metric
+    description: Postgres active connections
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{datname}}"
+        expr_template: >-
+          sum by (datname) (
+            pg_stat_activity_count{namespace="$namespace",pod=~"$pod",state="active"}
+          )
+
+  infra_postgres_txns:
+    id: infra_postgres_txns
+    kind: metric
+    description: Postgres transaction commit/rollback rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{datname}} commits"
+        expr_template: >-
+          sum by (datname) (rate(pg_stat_database_xact_commit{namespace="$namespace",pod=~"$pod",datname!=""}[5m]))
+
+  infra_postgres_cache_hit:
+    id: infra_postgres_cache_hit
+    kind: metric
+    description: Postgres buffer cache hit ratio
+    panel_type: gauge
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(pg_stat_database_blks_hit{namespace="$namespace",pod=~"$pod",datname!=""}[5m]))
+          /
+          clamp_min(
+            sum(rate(pg_stat_database_blks_hit{namespace="$namespace",pod=~"$pod",datname!=""}[5m]))
+            + sum(rate(pg_stat_database_blks_read{namespace="$namespace",pod=~"$pod",datname!=""}[5m])),
+            1e-9
+          )
+
+  infra_postgres_deadlocks:
+    id: infra_postgres_deadlocks
+    kind: metric
+    description: Postgres deadlock rate
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: deadlocks/s
+        expr_template: >-
+          sum(rate(pg_stat_database_deadlocks{namespace="$namespace",pod=~"$pod",datname!=""}[5m]))
+
+  # ── Kafka broker / topic / consumer-group (kafka_exporter) ──
+  infra_kafka_brokers:
+    id: infra_kafka_brokers
+    kind: metric
+    description: Number of Kafka brokers visible to exporter
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          max(kafka_brokers{namespace="$namespace"})
+
+  infra_kafka_exporter_up:
+    id: infra_kafka_exporter_up
+    kind: metric
+    description: kafka_exporter scrape up
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          max(up{namespace="$namespace",pod=~"kafka-exporter.*",job="kubernetes-pods"})
+
+  infra_kafka_topic_partitions:
+    id: infra_kafka_topic_partitions
+    kind: metric
+    description: Partition count by topic
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{topic}}"
+        expr_template: >-
+          kafka_topic_partitions{namespace="$namespace",topic=~"$topic"}
+
+  infra_kafka_msg_in:
+    id: infra_kafka_msg_in
+    kind: metric
+    description: Approximate messages written per second (rate of log-end offset)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{topic}}-p{{partition}}"
+        expr_template: >-
+          sum by (topic, partition) (
+            rate(kafka_topic_partition_current_offset{namespace="$namespace",topic=~"$topic"}[5m])
+          )
+
+  infra_kafka_msg_in_by_topic:
+    id: infra_kafka_msg_in_by_topic
+    kind: metric
+    description: Messages in / s by topic
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{topic}}"
+        expr_template: >-
+          topk(20,
+            sum by (topic) (
+              rate(kafka_topic_partition_current_offset{namespace="$namespace",topic=~"$topic"}[5m])
+            )
+          )
+
+  infra_kafka_log_end_offset:
+    id: infra_kafka_log_end_offset
+    kind: metric
+    description: Log end offset by topic partition
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{topic}}-p{{partition}}"
+        expr_template: >-
+          kafka_topic_partition_current_offset{namespace="$namespace",topic=~"$topic"}
+
+  infra_kafka_log_start_offset:
+    id: infra_kafka_log_start_offset
+    kind: metric
+    description: Oldest retained offset by topic partition
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{topic}}-p{{partition}}"
+        expr_template: >-
+          kafka_topic_partition_oldest_offset{namespace="$namespace",topic=~"$topic"}
+
+  infra_kafka_under_replicated:
+    id: infra_kafka_under_replicated
+    kind: metric
+    description: Under-replicated partitions (0 expected with RF=1)
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(kafka_topic_partition_under_replicated_partition{namespace="$namespace",topic=~"$topic"})
+            or vector(0)
+
+  infra_kafka_cg_lag:
+    id: infra_kafka_cg_lag
+    kind: metric
+    description: Consumer group lag by topic partition
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{consumergroup}} {{topic}}-p{{partition}}"
+        expr_template: >-
+          kafka_consumergroup_lag{namespace="$namespace",consumergroup=~"$consumergroup",topic=~"$topic"}
+
+  infra_kafka_cg_lag_sum:
+    id: infra_kafka_cg_lag_sum
+    kind: metric
+    description: Total lag by consumer group
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{consumergroup}}"
+        expr_template: >-
+          topk(20,
+            sum by (consumergroup) (
+              kafka_consumergroup_lag{namespace="$namespace",consumergroup=~"$consumergroup",topic=~"$topic"}
+            )
+          )
+
+  infra_kafka_cg_lag_max:
+    id: infra_kafka_cg_lag_max
+    kind: metric
+    description: Max partition lag across filtered groups
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          max(kafka_consumergroup_lag{namespace="$namespace",consumergroup=~"$consumergroup",topic=~"$topic"})
+            or vector(0)
+
+  infra_kafka_cg_current_offset:
+    id: infra_kafka_cg_current_offset
+    kind: metric
+    description: Consumer group current offset
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        legend: "{{consumergroup}} {{topic}}-p{{partition}}"
+        expr_template: >-
+          kafka_consumergroup_current_offset{namespace="$namespace",consumergroup=~"$consumergroup",topic=~"$topic"}
+
+  infra_kafka_cg_members:
+    id: infra_kafka_cg_members
+    kind: metric
+    description: Consumer group member count
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        legend: "{{consumergroup}}"
+        expr_template: >-
+          kafka_consumergroup_members{namespace="$namespace",consumergroup=~"$consumergroup"}

@@ -1,0 +1,59 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: platform-mongo
+uid: platform-mongo
+title: "Platform / MongoDB"
+folder: "AM / Platform"
+
+panels:
+  - id: row_health
+    type: row
+    title: "0 · Health"
+
+  - id: text_mongo
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Infra MongoDB** — Metrics from `mongodb_exporter` sidecar (namespace **infra**).
+      App-side driver panels stay on **Technical / Services**.
+
+  - id: infra_mongo_up
+    signal: infra_mongo_up
+    title: Mongo up
+    type: stat
+    unit: short
+    decimals: 0
+    width: 6
+    height: 4
+    color_mode: background
+
+  - id: row_runtime
+    type: row
+    title: "1 · Runtime"
+
+  - id: infra_mongo_connections
+    signal: infra_mongo_connections
+    title: Connections
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+
+  - id: infra_mongo_ops
+    signal: infra_mongo_ops
+    title: Ops / s
+    type: timeseries
+    unit: ops
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_mongo_memory
+    signal: infra_mongo_memory
+    title: Memory (resident)
+    type: timeseries
+    unit: bytes
+    width: 12
+    height: 8

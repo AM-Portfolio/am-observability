@@ -1,0 +1,87 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: platform-redis
+uid: platform-redis
+title: "Platform / Redis"
+folder: "AM / Platform"
+# Server-side Redis via redis_exporter (not Lettuce client metrics)
+
+panels:
+  - id: row_health
+    type: row
+    title: "0 · Health"
+
+  - id: text_redis
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Infra Redis** — Metrics from `redis_exporter` sidecar (namespace **infra**, pod **redis.***).
+      App-side Lettuce panels stay on **Technical / Services**.
+
+  - id: infra_redis_up
+    signal: infra_redis_up
+    title: Redis up
+    type: stat
+    unit: short
+    decimals: 0
+    width: 6
+    height: 4
+    color_mode: background
+    mappings:
+      - type: value
+        options:
+          "0":
+            text: DOWN
+            color: red
+          "1":
+            text: UP
+            color: green
+
+  - id: infra_redis_hit_ratio
+    signal: infra_redis_hit_ratio
+    title: Hit ratio
+    type: gauge
+    unit: percentunit
+    decimals: 2
+    min: 0
+    max: 1
+    width: 6
+    height: 4
+
+  - id: row_runtime
+    type: row
+    title: "1 · Runtime"
+
+  - id: infra_redis_clients
+    signal: infra_redis_clients
+    title: Connected clients
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+
+  - id: infra_redis_memory
+    signal: infra_redis_memory
+    title: Memory used
+    type: timeseries
+    unit: bytes
+    width: 12
+    height: 8
+
+  - id: infra_redis_commands
+    signal: infra_redis_commands
+    title: Commands / s
+    type: timeseries
+    unit: ops
+    width: 12
+    height: 8
+
+  - id: infra_redis_blocked
+    signal: infra_redis_blocked
+    title: Blocked clients
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8

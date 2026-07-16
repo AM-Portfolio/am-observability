@@ -1,4 +1,4 @@
-"""Grafana dashboard JSON renderer (output side) — colorful dark-theme SRE panels."""
+"""Grafana dashboard JSON renderer — glass-friendly, theme-safe SRE panels."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ _PACK_QUERY = (
     'query_result(label_replace(vector(1), "v", "$service_pack", "", ""))'
 )
 
-# Bright Grafana colors — readable on dark dashboard backgrounds
+# Grafana palette colors — readable on both dark and light themes
 _GREEN = "#73BF69"
 _YELLOW = "#FADE2A"
 _ORANGE = "#FF9830"
@@ -18,7 +18,7 @@ _RED = "#F2495C"
 _BLUE = "#5794F2"
 _PURPLE = "#B877D9"
 _CYAN = "#8AB8FF"
-_TEAL = "#37872D"  # deeper green for contrast accents
+_TEAL = "#37872D"
 
 # Template color: name → bright hex (legacy dark-* names remapped)
 _FIXED_COLORS = {
@@ -38,6 +38,63 @@ _FIXED_COLORS = {
 }
 
 
+def _theme_steps(theme: str) -> list[dict[str, Any]]:
+    """Shared threshold steps for stat / gauge / bargauge."""
+    if theme == "restarts":
+        return [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _ORANGE, "value": 2},
+            {"color": _RED, "value": 3},
+        ]
+    if theme == "ratio":
+        return [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 0.01},
+            {"color": _ORANGE, "value": 0.03},
+            {"color": _RED, "value": 0.05},
+        ]
+    if theme == "decision":
+        return [
+            {"color": _RED, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _GREEN, "value": 2},
+        ]
+    if theme == "neutral":
+        return [{"color": _BLUE, "value": None}]
+    if theme == "latency":
+        return [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _ORANGE, "value": 5},
+            {"color": _RED, "value": 20},
+        ]
+    if theme == "slow_count":
+        return [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _RED, "value": 3},
+        ]
+    if theme == "success_ratio":
+        return [
+            {"color": _RED, "value": None},
+            {"color": _ORANGE, "value": 0.85},
+            {"color": _YELLOW, "value": 0.95},
+            {"color": _GREEN, "value": 0.99},
+        ]
+    if theme == "cyan":
+        return [{"color": _CYAN, "value": None}]
+    if theme == "purple":
+        return [{"color": _PURPLE, "value": None}]
+    if theme == "teal":
+        return [{"color": _GREEN, "value": None}]
+    # health / up
+    return [
+        {"color": _RED, "value": None},
+        {"color": _GREEN, "value": 1},
+    ]
+
+
 def _fixed_color(name: str | None) -> str:
     if not name:
         return _BLUE
@@ -51,14 +108,12 @@ def _thresholds(steps: list[dict[str, Any]]) -> dict[str, Any]:
 def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
     color = _fixed_color(panel.get("color") or _BLUE)
-    fill = float(panel.get("fill_opacity", 45))
-    # Cap fill so stacked areas stay readable on dark theme
-    fill = min(fill, 55)
+    fill = float(panel.get("fill_opacity", 40))
+    fill = min(fill, 50)
     palette = panel.get("palette") or "classic"
     if palette == "fixed":
         color_cfg: dict[str, Any] = {"mode": "fixed", "fixedColor": color}
     else:
-        # Classic multi-series = distinct bright lines on dark bg
         color_cfg = {"mode": "palette-classic"}
     legend_fmt = panel.get("legend") or "__auto"
     draw_style = panel.get("draw_style") or "line"
@@ -145,7 +200,7 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             }
         ],
         "title": panel["title"],
-        "transparent": False,
+        "transparent": True,
         "type": "timeseries",
     }
 
@@ -154,75 +209,26 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
     theme = panel.get("theme") or "health"
     mappings = list(panel.get("mappings") or [])
-    # Colorful dark-theme KPIs: soft background wash + sparkline
-    color_mode = "background"
-    if theme == "restarts":
-        steps = [
-            {"color": _GREEN, "value": None},
-            {"color": _YELLOW, "value": 1},
-            {"color": _ORANGE, "value": 2},
-            {"color": _RED, "value": 3},
-        ]
-    elif theme == "ratio":
-        steps = [
-            {"color": _GREEN, "value": None},
-            {"color": _YELLOW, "value": 0.01},
-            {"color": _ORANGE, "value": 0.03},
-            {"color": _RED, "value": 0.05},
-        ]
-    elif theme == "decision":
-        steps = [
-            {"color": _RED, "value": None},
-            {"color": _YELLOW, "value": 1},
-            {"color": _GREEN, "value": 2},
-        ]
-        if not mappings:
-            mappings = [
-                {
-                    "type": "value",
-                    "options": {
-                        "0": {"text": "ACT", "color": _RED},
-                        "1": {"text": "WATCH", "color": _YELLOW},
-                        "2": {"text": "GOOD", "color": _GREEN},
-                    },
-                }
-            ]
-    elif theme == "neutral":
-        steps = [{"color": _BLUE, "value": None}]
-    elif theme == "latency":
-        steps = [
-            {"color": _GREEN, "value": None},
-            {"color": _YELLOW, "value": 1},
-            {"color": _ORANGE, "value": 5},
-            {"color": _RED, "value": 20},
-        ]
-    elif theme == "slow_count":
-        steps = [
-            {"color": _GREEN, "value": None},
-            {"color": _YELLOW, "value": 1},
-            {"color": _RED, "value": 3},
-        ]
-    elif theme == "success_ratio":
-        steps = [
-            {"color": _RED, "value": None},
-            {"color": _ORANGE, "value": 0.85},
-            {"color": _YELLOW, "value": 0.95},
-            {"color": _GREEN, "value": 0.99},
-        ]
-    elif theme == "cyan":
-        steps = [{"color": _CYAN, "value": None}]
-    elif theme == "purple":
-        steps = [{"color": _PURPLE, "value": None}]
-    elif theme == "teal":
-        steps = [{"color": _GREEN, "value": None}]
-    else:  # health / up
-        steps = [
-            {"color": _RED, "value": None},
-            {"color": _GREEN, "value": 1},
+    steps = _theme_steps(theme)
+    if theme == "decision" and not mappings:
+        mappings = [
+            {
+                "type": "value",
+                "options": {
+                    "0": {"text": "ACT", "color": _RED},
+                    "1": {"text": "WATCH", "color": _YELLOW},
+                    "2": {"text": "GOOD", "color": _GREEN},
+                },
+            }
         ]
 
+    # Glass default: color the value (+ sparkline). Solid background only for Decision / scrape.
     if panel.get("color_mode"):
         color_mode = str(panel["color_mode"])
+    elif theme in ("decision", "health"):
+        color_mode = "background"
+    else:
+        color_mode = "value"
 
     return {
         "datasource": ds,
@@ -233,7 +239,7 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "thresholds": _thresholds(steps),
                 "color": {"mode": "thresholds"},
                 "mappings": mappings,
-                "noValue": "—",
+                "noValue": "0",
             },
             "overrides": [],
         },
@@ -245,12 +251,11 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             "justifyMode": "center",
             "orientation": "auto",
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
-            # Decision: show only ACT/WATCH/GOOD (not "Decision" name again)
             "textMode": "value" if theme == "decision" else "auto",
             "wideLayout": True,
             "text": {
-                "titleSize": 12,
-                "valueSize": 42 if theme == "decision" else 28,
+                "titleSize": 13,
+                "valueSize": 44 if theme == "decision" else 32,
             },
         },
         "targets": [
@@ -258,11 +263,12 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "datasource": ds,
                 "editorMode": "code",
                 "expr": panel["expr"],
+                "legendFormat": panel.get("legend") or "__auto",
                 "refId": "A",
             }
         ],
         "title": panel["title"],
-        "transparent": False,
+        "transparent": True,
         "type": "stat",
     }
 
@@ -301,7 +307,7 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "thresholds": _thresholds(steps),
                 "color": {"mode": "thresholds"},
                 "mappings": mappings,
-                "noValue": "—",
+                "noValue": "0",
             },
             "overrides": [],
         },
@@ -318,12 +324,228 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "datasource": ds,
                 "editorMode": "code",
                 "expr": panel["expr"],
+                "legendFormat": panel.get("legend") or "__auto",
                 "refId": "A",
             }
         ],
         "title": panel["title"],
-        "transparent": False,
+        "transparent": True,
         "type": "gauge",
+    }
+
+
+def _bargauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    ds = panel["datasource"]
+    theme = panel.get("theme") or "latency"
+    steps = _theme_steps(theme)
+    orientation = panel.get("orientation") or "horizontal"
+    display_mode = panel.get("display_mode") or "gradient"
+    legend_fmt = panel.get("legend") or "__auto"
+    defaults: dict[str, Any] = {
+        "unit": panel.get("unit") or "short",
+        "decimals": panel.get("decimals", 2),
+        "thresholds": _thresholds(steps),
+        "color": {"mode": "thresholds"},
+        "noValue": "0",
+    }
+    if panel.get("min") is not None:
+        defaults["min"] = panel["min"]
+    if panel.get("max") is not None:
+        defaults["max"] = panel["max"]
+    return {
+        "datasource": ds,
+        "fieldConfig": {
+            "defaults": defaults,
+            "overrides": [],
+        },
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "displayMode": display_mode,
+            "orientation": orientation,
+            "reduceOptions": {
+                "calcs": ["lastNotNull"],
+                "fields": "",
+                "values": bool(panel.get("show_all_values", False)),
+            },
+            "showUnfilled": True,
+            "minVizHeight": 16,
+            "minVizWidth": 8,
+            "namePlacement": "auto",
+            "sizing": "auto",
+            "valueMode": "color",
+            "text": {"titleSize": 13, "valueSize": 18},
+        },
+        "targets": [
+            {
+                "datasource": ds,
+                "editorMode": "code",
+                "expr": panel["expr"],
+                "legendFormat": legend_fmt,
+                "range": not bool(panel.get("instant", True)),
+                "instant": bool(panel.get("instant", True)),
+                "refId": "A",
+            }
+        ],
+        "title": panel["title"],
+        "transparent": True,
+        "type": "bargauge",
+    }
+
+
+def _piechart_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    ds = panel["datasource"]
+    legend_fmt = panel.get("legend") or "__auto"
+    return {
+        "datasource": ds,
+        "fieldConfig": {
+            "defaults": {
+                "unit": panel.get("unit") or "short",
+                "decimals": panel.get("decimals", 2),
+                "color": {"mode": "palette-classic"},
+                "noValue": "0",
+            },
+            "overrides": [],
+        },
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "reduceOptions": {
+                "calcs": ["lastNotNull"],
+                "fields": "",
+                "values": False,
+            },
+            "pieType": panel.get("pie_type") or "donut",
+            "tooltip": {"mode": "single", "sort": "desc"},
+            "legend": {
+                "displayMode": "table",
+                "placement": "right",
+                "showLegend": True,
+                "values": ["value", "percent"],
+            },
+            "displayLabels": ["percent"],
+        },
+        "targets": [
+            {
+                "datasource": ds,
+                "editorMode": "code",
+                "expr": panel["expr"],
+                "legendFormat": legend_fmt,
+                "instant": True,
+                "refId": "A",
+            }
+        ],
+        "title": panel["title"],
+        "transparent": True,
+        "type": "piechart",
+    }
+
+
+def _heatmap_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    """Prometheus histogram buckets → Grafana heatmap (format=heatmap)."""
+    ds = panel["datasource"]
+    legend_fmt = panel.get("legend") or "{{le}}"
+    return {
+        "datasource": ds,
+        "fieldConfig": {
+            "defaults": {
+                "custom": {
+                    "scaleDistribution": {"type": "linear"},
+                    "hideFrom": {"legend": False, "tooltip": False, "viz": False},
+                },
+                "unit": panel.get("unit") or "short",
+            },
+            "overrides": [],
+        },
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "calculate": False,
+            "cellGap": 1,
+            "cellValues": {"decimals": 1},
+            "color": {
+                "exponent": 0.5,
+                "fill": _BLUE,
+                "mode": "scheme",
+                "reverse": False,
+                "scale": "exponential",
+                "scheme": "Spectral",
+                "steps": 64,
+            },
+            "exemplars": {"color": _RED},
+            "filterValues": {"le": 1e-9},
+            "legend": {"show": True},
+            "rowsFrame": {"layout": "auto"},
+            "tooltip": {"mode": "single", "showColorScale": True, "yHistogram": False},
+            "yAxis": {
+                "axisPlacement": "left",
+                "reverse": False,
+                "unit": panel.get("y_unit") or "s",
+            },
+        },
+        "targets": [
+            {
+                "datasource": ds,
+                "editorMode": "code",
+                "expr": panel["expr"],
+                "format": "heatmap",
+                "legendFormat": legend_fmt,
+                "range": True,
+                "refId": "A",
+            }
+        ],
+        "title": panel["title"],
+        "transparent": True,
+        "type": "heatmap",
+    }
+
+
+def _status_history_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    ds = panel["datasource"]
+    theme = panel.get("theme") or "health"
+    steps = _theme_steps(theme)
+    legend_fmt = panel.get("legend") or "__auto"
+    return {
+        "datasource": ds,
+        "fieldConfig": {
+            "defaults": {
+                "custom": {
+                    "fillOpacity": 85,
+                    "lineWidth": 0,
+                    "hideFrom": {"legend": False, "tooltip": False, "viz": False},
+                },
+                "thresholds": _thresholds(steps),
+                "color": {"mode": "thresholds"},
+                "noValue": "0",
+            },
+            "overrides": [],
+        },
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "colWidth": 0.9,
+            "legend": {
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": True,
+            },
+            "rowHeight": 0.9,
+            "showValue": "auto",
+            "tooltip": {"mode": "single", "sort": "none"},
+        },
+        "targets": [
+            {
+                "datasource": ds,
+                "editorMode": "code",
+                "expr": panel["expr"],
+                "legendFormat": legend_fmt,
+                "range": True,
+                "refId": "A",
+            }
+        ],
+        "title": panel["title"],
+        "transparent": True,
+        "type": "status-history",
     }
 
 
@@ -585,6 +807,7 @@ def _table_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "targets": targets,
         "title": panel["title"],
         "transformations": transforms,
+        "transparent": True,
         "type": "table",
     }
 
@@ -593,6 +816,10 @@ _RENDERERS = {
     "timeseries": _timeseries_panel,
     "stat": _stat_panel,
     "gauge": _gauge_panel,
+    "bargauge": _bargauge_panel,
+    "piechart": _piechart_panel,
+    "heatmap": _heatmap_panel,
+    "status-history": _status_history_panel,
     "logs": _logs_panel,
     "link": _link_panel,
     "text": _text_panel,
@@ -706,7 +933,78 @@ def _service_pack(target: dict[str, str]) -> str:
     )
 
 
+def _templating_platform(ir: dict[str, Any]) -> dict[str, Any]:
+    """Namespace (+ optional pod / topic / consumergroup) vars for Platform dashboards."""
+    ns = ir["namespace"]
+    ns_opts = list(ir.get("namespace_options") or [ns])
+    pod = str((ir.get("vars") or {}).get("pod") or ".*")
+    filters = set(ir.get("platform_filters") or [])
+    ds_uid = "prometheus"
+    inputs = ir.get("bindings_inputs") or {}
+    metrics = inputs.get("metrics") or {}
+    if metrics.get("datasource_uid"):
+        ds_uid = str(metrics["datasource_uid"])
+
+    variables: list[dict[str, Any]] = [
+        _var_custom("namespace", "Namespace", ns, ns_opts),
+    ]
+    # Only show pod filter when not "match all"
+    if pod and pod != ".*":
+        variables.append(
+            {
+                "name": "pod",
+                "label": "Pod",
+                "type": "textbox",
+                "hide": 0,
+                "query": pod,
+                "current": {"selected": True, "text": pod, "value": pod},
+                "options": [{"selected": True, "text": pod, "value": pod}],
+            }
+        )
+    else:
+        variables.append(
+            {
+                "name": "pod",
+                "label": "Pod",
+                "type": "textbox",
+                "hide": 2,
+                "query": ".*",
+                "current": {"selected": True, "text": ".*", "value": ".*"},
+                "options": [{"selected": True, "text": ".*", "value": ".*"}],
+            }
+        )
+
+    if "topic" in filters:
+        variables.append(
+            _var_prom_label(
+                "topic",
+                "Topic",
+                query=(
+                    "label_values("
+                    'kafka_topic_partitions{namespace="$namespace"}, topic)'
+                ),
+                datasource_uid=ds_uid,
+            )
+        )
+    if "consumergroup" in filters:
+        variables.append(
+            _var_prom_label(
+                "consumergroup",
+                "Consumer group",
+                query=(
+                    "label_values("
+                    'kafka_consumergroup_lag{namespace="$namespace"}, consumergroup)'
+                ),
+                datasource_uid=ds_uid,
+            )
+        )
+    return {"list": variables}
+
+
 def _templating(ir: dict[str, Any]) -> dict[str, Any]:
+    if ir.get("dashboard_kind") == "platform":
+        return _templating_platform(ir)
+
     ns = ir["namespace"]
     service = ir["service"]
     app = ir["app"]
@@ -853,7 +1151,12 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
         panels.append(renderer(panel, idx))
 
     tags = list(ir.get("tags") or [])
-    for t in ("am", "sre", "technical"):
+    default_tags = ("am", "sre", "platform") if ir.get("dashboard_kind") == "platform" else (
+        "am",
+        "sre",
+        "technical",
+    )
+    for t in default_tags:
         if t not in tags:
             tags.append(t)
 
@@ -868,7 +1171,6 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
         "panels": panels,
         "refresh": "30s",
         "schemaVersion": 38,
-        "style": "dark",
         "tags": tags,
         "templating": _templating(ir),
         "time": {"from": "now-1h", "to": "now"},

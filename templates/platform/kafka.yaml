@@ -1,0 +1,159 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: platform-kafka
+uid: platform-kafka
+title: "Platform / Kafka"
+folder: "AM / Platform"
+platform_filters:
+  - topic
+  - consumergroup
+# Broker + topic + consumer-group metrics from kafka_exporter (env KRaft clusters)
+
+panels:
+  - id: row_health
+    type: row
+    title: "0 · Broker health"
+
+  - id: text_health
+    type: text
+    title: ""
+    width: 24
+    height: 3
+    content: |
+      **Platform / Kafka** — Pick **Namespace** (`infra-preprod` · `infra-prod` · `infra-dev`), then **Topic** and **Consumer group**.
+      **Lag** = log-end offset − consumer current offset. Msg in/s ≈ rate of log-end offset.
+      App listener view stays on **Technical / Services** §5c.
+
+  - id: infra_kafka_exporter_up
+    signal: infra_kafka_exporter_up
+    title: Exporter up
+    type: stat
+    unit: short
+    decimals: 0
+    width: 4
+    height: 4
+    color_mode: background
+
+  - id: infra_kafka_brokers
+    signal: infra_kafka_brokers
+    title: Brokers
+    type: stat
+    unit: short
+    decimals: 0
+    width: 4
+    height: 4
+    color_mode: value
+    transparent: true
+
+  - id: infra_kafka_under_replicated
+    signal: infra_kafka_under_replicated
+    title: Under-replicated
+    type: stat
+    unit: short
+    decimals: 0
+    width: 4
+    height: 4
+    color_mode: value
+    transparent: true
+
+  - id: infra_kafka_cg_lag_max
+    signal: infra_kafka_cg_lag_max
+    title: Max lag (filtered)
+    type: stat
+    unit: short
+    decimals: 0
+    width: 6
+    height: 4
+    color_mode: value
+    transparent: true
+
+  - id: row_topic
+    type: row
+    title: "1 · Topic traffic ($topic)"
+
+  - id: infra_kafka_msg_in_by_topic
+    signal: infra_kafka_msg_in_by_topic
+    title: Messages in / s by topic
+    type: timeseries
+    unit: ops
+    width: 12
+    height: 8
+    legend: true
+    legend_calcs: [mean, max]
+
+  - id: infra_kafka_msg_in
+    signal: infra_kafka_msg_in
+    title: Messages in / s by partition
+    type: timeseries
+    unit: ops
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_kafka_log_end_offset
+    signal: infra_kafka_log_end_offset
+    title: Log end offset
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_kafka_log_start_offset
+    signal: infra_kafka_log_start_offset
+    title: Log start offset (retention)
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_kafka_topic_partitions
+    signal: infra_kafka_topic_partitions
+    title: Partition count
+    type: timeseries
+    unit: short
+    width: 12
+    height: 6
+    legend: true
+
+  - id: row_consumer
+    type: row
+    title: "2 · Consumer groups ($consumergroup · $topic)"
+
+  - id: infra_kafka_cg_lag_sum
+    signal: infra_kafka_cg_lag_sum
+    title: Lag sum by consumer group
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+    legend_calcs: [mean, max]
+
+  - id: infra_kafka_cg_lag
+    signal: infra_kafka_cg_lag
+    title: Lag by group · topic · partition
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_kafka_cg_current_offset
+    signal: infra_kafka_cg_current_offset
+    title: Consumer current offset
+    type: timeseries
+    unit: short
+    width: 12
+    height: 8
+    legend: true
+
+  - id: infra_kafka_cg_members
+    signal: infra_kafka_cg_members
+    title: Group members
+    type: timeseries
+    unit: short
+    width: 12
+    height: 6
+    legend: true

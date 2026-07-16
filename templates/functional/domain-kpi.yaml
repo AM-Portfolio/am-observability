@@ -4,7 +4,7 @@ id: domain-kpi
 title: "Functional / Services"
 folder: "AM / Functional"
 # Product / usage board for every microservice (Namespace + Service dropdown).
-# Latency-first: avg by API surfaces 20–30s calls when histogram p95 is empty.
+# Glass UI: bar gauges + sparklines + heatmap/pie — no solid KPI brick walls.
 
 panels:
   - id: row_intro
@@ -19,7 +19,7 @@ panels:
     content: |
       **Functional / Services** — Common product questions for any microservice (same Service dropdown as Technical).
       **Visits** = API requests (not unique users). **Latency** unit = **seconds** (30 = thirty seconds). Red when avg ≥ **5s**; critical ≥ **20s**.
-      Empty domain tiles mean that service has not published gauges yet.
+      Glass panels follow Grafana dark/light theme. Empty domain tiles show **0** until gauges are published.
 
   - id: row_usage
     type: row
@@ -39,7 +39,7 @@ panels:
     type: timeseries
     palette: fixed
     color: dark-blue
-    fill_opacity: 55
+    fill_opacity: 45
     legend_placement: right
     legend_mode: list
     unit: reqps
@@ -52,7 +52,7 @@ panels:
     type: timeseries
     palette: classic
     stack: true
-    fill_opacity: 70
+    fill_opacity: 50
     legend_placement: right
     legend_mode: list
     unit: reqps
@@ -69,46 +69,56 @@ panels:
     width: 24
     height: 2
     content: |
-      **Slow APIs (hero)** — **Avg by API** is the source of truth for 20–30s pain. p95 uses histogram when present, otherwise avg.
+      **Slow APIs (hero)** — Bar gauges + charts (not solid bricks). **Avg by API** is the source of truth for 20–30s pain.
       Thresholds: 1s / 5s / 20s. If worst avg is red → set Method + API path, open Tempo, then Technical deps.
 
   - id: http_latency_worst_avg
     signal: http_latency_worst_avg
     title: Worst avg · s
-    type: stat
+    type: bargauge
     theme: latency
     unit: s
     decimals: 2
+    orientation: horizontal
+    display_mode: gradient
     width: 6
     height: 4
 
   - id: http_latency_slow_api_count
     signal: http_latency_slow_api_count
     title: APIs avg ≥ 5s
-    type: stat
+    type: bargauge
     theme: slow_count
     unit: short
     decimals: 0
+    orientation: horizontal
+    display_mode: gradient
     width: 6
     height: 4
 
   - id: http_slo_under_1s
     signal: http_slo_under_1s
     title: Under 1s · fraction
-    type: stat
+    type: bargauge
     theme: success_ratio
     unit: percentunit
     decimals: 2
+    orientation: horizontal
+    display_mode: gradient
+    max: 1
     width: 6
     height: 4
 
   - id: http_slo_under_5s
     signal: http_slo_under_5s
     title: Under 5s · fraction
-    type: stat
+    type: bargauge
     theme: success_ratio
     unit: percentunit
     decimals: 2
+    orientation: horizontal
+    display_mode: gradient
+    max: 1
     width: 6
     height: 4
 
@@ -118,7 +128,7 @@ panels:
     type: timeseries
     palette: classic
     latency_slo: true
-    fill_opacity: 45
+    fill_opacity: 40
     legend_placement: right
     legend_mode: list
     unit: s
@@ -131,10 +141,32 @@ panels:
     type: timeseries
     palette: classic
     latency_slo: true
-    fill_opacity: 40
+    fill_opacity: 35
     legend_placement: right
     legend_mode: list
     unit: s
+    width: 12
+    height: 10
+
+  - id: http_latency_topk_bargauge
+    signal: http_latency_avg_by_uri
+    title: Top APIs by avg latency
+    type: bargauge
+    theme: latency
+    unit: s
+    decimals: 2
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    instant: true
+    width: 12
+    height: 10
+
+  - id: http_latency_heatmap
+    signal: http_latency_heatmap
+    title: Latency density · heatmap
+    type: heatmap
+    y_unit: s
     width: 12
     height: 10
 
@@ -160,12 +192,15 @@ panels:
   - id: http_success_ratio
     signal: http_success_ratio
     title: Success 2xx · fraction
-    type: stat
+    type: bargauge
     theme: success_ratio
     unit: percentunit
     decimals: 2
+    orientation: horizontal
+    display_mode: gradient
+    max: 1
     width: 6
-    height: 4
+    height: 5
 
   - id: http_error_ratio
     signal: http_error_ratio
@@ -173,37 +208,46 @@ panels:
     type: timeseries
     palette: fixed
     color: dark-red
-    fill_opacity: 50
+    fill_opacity: 40
     legend_placement: right
     legend_mode: list
     unit: percentunit
     width: 18
-    height: 4
+    height: 5
+
+  - id: http_requests_by_outcome_pie
+    signal: http_requests_by_outcome
+    title: Outcome mix
+    type: piechart
+    pie_type: donut
+    unit: reqps
+    width: 8
+    height: 8
 
   - id: http_requests_by_outcome
     signal: http_requests_by_outcome
-    title: By outcome
+    title: By outcome · trend
     type: timeseries
     palette: classic
     stack: true
-    fill_opacity: 65
+    fill_opacity: 50
     legend_placement: right
     legend_mode: list
     unit: reqps
-    width: 12
+    width: 8
     height: 8
 
   - id: http_requests_by_status
     signal: http_requests_by_status
-    title: By status
+    title: By status · trend
     type: timeseries
     palette: classic
     stack: true
-    fill_opacity: 65
+    fill_opacity: 50
     legend_placement: right
     legend_mode: list
     unit: reqps
-    width: 12
+    width: 8
     height: 8
 
   - id: row_act
@@ -239,34 +283,40 @@ panels:
     width: 24
     height: 2
     content: |
-      **Domain** — Real business counts when the service publishes gauges. Empty for services without them (e.g. logging).
+      **Domain** — Business counts when this service publishes gauges. Clean bar tiles (no raw PromQL). Shows **0** when absent.
 
   - id: portfolio_users_total
     signal: portfolio_users_total
     title: Users (owners)
-    type: stat
+    type: bargauge
     theme: cyan
     unit: short
     decimals: 0
+    orientation: horizontal
+    display_mode: gradient
     width: 8
     height: 5
 
   - id: portfolio_portfolios_total
     signal: portfolio_portfolios_total
     title: Portfolios
-    type: stat
+    type: bargauge
     theme: purple
     unit: short
     decimals: 0
+    orientation: horizontal
+    display_mode: gradient
     width: 8
     height: 5
 
   - id: portfolio_holdings_total
     signal: portfolio_holdings_total
     title: Holdings
-    type: stat
+    type: bargauge
     theme: teal
     unit: short
     decimals: 0
+    orientation: horizontal
+    display_mode: gradient
     width: 8
     height: 5

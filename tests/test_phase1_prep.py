@@ -76,12 +76,14 @@ def test_metrics_application_as_grafana_var():
     assert "$kafka_topic" in joined or 'topic=~"$kafka_topic"' in joined
     log_titles = [p["title"] for p in dashboard["panels"] if p["type"] == "logs"]
     assert log_titles == ["Error logs", "Logs"]
-    # Colorful KPI stats use background wash on dark theme
+    # Glass KPIs: color the value; Decision/Scrape keep solid wash
     pods = next(p for p in dashboard["panels"] if p["title"] == "Pods")
-    assert pods["options"]["colorMode"] == "background"
-    # Decision stays solid background
+    assert pods["options"]["colorMode"] == "value"
+    assert pods.get("transparent") is True
     decision = next(p for p in dashboard["panels"] if p["title"] == "Decision")
     assert decision["options"]["colorMode"] == "background"
+    scrape = next(p for p in dashboard["panels"] if p["title"] == "Scrape up")
+    assert scrape["options"]["colorMode"] == "background"
     # API table includes p75
     api = next(p for p in dashboard["panels"] if p["type"] == "table" and "API" in p["title"])
     legends = [t.get("refId") for t in api.get("targets") or []]
@@ -162,6 +164,39 @@ def test_functional_shared_published():
     assert rc == 0
     assert (ROOT / "dist" / "grafana" / "func-am-services.yaml").is_file()
     assert not (ROOT / "dist" / "grafana" / "func-am-portfolio.yaml").exists()
+
+
+def test_platform_dashboards_generated():
+    """Default generate also emits Platform / Overview + Redis."""
+    rc = generate()
+    assert rc == 0
+    report = json.loads((ROOT / "dist" / "report.json").read_text(encoding="utf-8"))
+    assert "platform-overview" in report["passed"]
+    assert "platform-redis" in report["passed"]
+    assert "platform-mongo" in report["passed"]
+    assert "platform-postgres" in report["passed"]
+    assert "platform-kafka" in report["passed"]
+    overview = ROOT / "dist" / "grafana" / "platform-overview.yaml"
+    redis = ROOT / "dist" / "grafana" / "platform-redis.yaml"
+    assert overview.is_file()
+    assert redis.is_file()
+    assert (ROOT / "dist" / "grafana" / "platform-mongo.yaml").is_file()
+    assert (ROOT / "dist" / "grafana" / "platform-postgres.yaml").is_file()
+    kafka = ROOT / "dist" / "grafana" / "platform-kafka.yaml"
+    assert kafka.is_file()
+    text = overview.read_text(encoding="utf-8")
+    assert 'grafana_folder: "platform"' in text
+    assert "Platform / Overview" in text
+    assert "container_cpu_usage_seconds_total" in text
+    assert "identity" in text  # namespace dropdown includes identity
+    redis_text = redis.read_text(encoding="utf-8")
+    assert "redis_up" in redis_text or "redis_connected_clients" in redis_text
+    assert 'grafana_folder: "platform"' in redis_text
+    kafka_text = kafka.read_text(encoding="utf-8")
+    assert "kafka_consumergroup_lag" in kafka_text
+    assert "infra-preprod" in kafka_text
+    assert '"name": "topic"' in kafka_text or "\"name\": \"topic\"" in kafka_text
+    assert "consumergroup" in kafka_text
 
 
 def test_goldens_match(request):

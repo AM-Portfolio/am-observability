@@ -1,0 +1,45 @@
+# Platform / infra dashboards (generated via compose_platform).
+# Templates live under templates/platform/{id}.yaml
+apiVersion: am.obs/v1
+kind: PlatformRegistry
+
+defaults:
+  namespace: infra
+  namespaces:
+    - infra
+    - infra-preprod
+    - infra-prod
+    - infra-dev
+    - identity
+    - billing
+    - notification
+    - vault
+    - monitoring
+
+dashboards:
+  - id: overview
+    template: overview.yaml
+    enabled: true
+  - id: redis
+    template: redis.yaml
+    enabled: true
+    namespace: infra
+    pod: "redis.*"
+  - id: mongo
+    template: mongo.yaml
+    enabled: true
+    namespace: infra
+    pod: "mongodb.*"
+  - id: postgres
+    template: postgres.yaml
+    enabled: true
+    namespace: infra
+    pod: "postgresql.*"
+  - id: kafka
+    template: kafka.yaml
+    enabled: true
+    namespace: infra-preprod
+    namespaces:
+      - infra-preprod
+      - infra-prod
+      - infra-dev

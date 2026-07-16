@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""am-observability CLI: validate | generate [--only ID] [--continue] [--binding PATH] [--fixture PATH]"""
+"""am-observability CLI: validate | generate [--only ID] [--platform-only ID] ..."""
 
 from __future__ import annotations
 
@@ -26,6 +26,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_generate = sub.add_parser("generate", help="Generate dashboard ConfigMaps into dist/")
     p_generate.add_argument("--only", metavar="ID", help="Generate a single service id")
+    p_generate.add_argument(
+        "--platform-only",
+        metavar="ID",
+        help="Generate a single platform dashboard (overview, redis, …)",
+    )
+    p_generate.add_argument(
+        "--no-platform",
+        action="store_true",
+        help="Skip Platform / * dashboards",
+    )
     p_generate.add_argument(
         "--continue",
         dest="continue_on_error",
@@ -59,6 +69,8 @@ def _run_generate(args: argparse.Namespace) -> int:
         continue_on_error=args.continue_on_error,
         binding=args.binding,
         fixture=args.fixture,
+        platform=not args.no_platform,
+        platform_only=args.platform_only,
     )
 
 

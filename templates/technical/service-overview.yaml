@@ -64,7 +64,7 @@ panels:
     width: 24
     height: 2
     content: |
-      **Service health** — Pods, scrape, restarts, resources, and live image. Soft KPIs (value color + sparkline); solid green/red only for scrape.
+      **Service health** — Pods, scrape, restarts, resources, and live image. Glass KPIs (value color + sparkline); solid wash only for scrape Decision.
       Helm / app version need pod labels on scraped series — empty means labels not present yet (not a broken chart).
 
   - id: k8s_pod_count
@@ -72,6 +72,7 @@ panels:
     title: Pods
     type: stat
     theme: cyan
+    color_mode: value
     unit: short
     decimals: 0
     width: 3
@@ -82,6 +83,7 @@ panels:
     title: Scrape up
     type: stat
     theme: health
+    color_mode: background
     unit: short
     decimals: 0
     width: 3
@@ -92,6 +94,7 @@ panels:
     title: Restarts
     type: stat
     theme: restarts
+    color_mode: value
     unit: short
     decimals: 0
     width: 3
@@ -102,6 +105,7 @@ panels:
     title: Uptime
     type: stat
     theme: purple
+    color_mode: value
     unit: s
     decimals: 0
     width: 3
@@ -112,6 +116,7 @@ panels:
     title: CPU (cores)
     type: stat
     theme: neutral
+    color_mode: value
     unit: short
     decimals: 2
     width: 4
@@ -122,6 +127,7 @@ panels:
     title: Memory
     type: stat
     theme: teal
+    color_mode: value
     unit: bytes
     decimals: 1
     width: 4
@@ -134,11 +140,20 @@ panels:
     width: 4
     height: 4
 
+  - id: service_health_up_history
+    signal: service_health_up
+    title: Scrape history
+    type: status-history
+    theme: health
+    legend: "scrape"
+    width: 10
+    height: 4
+
   - id: k8s_image_version
     signal: k8s_image_version
     title: Running image
     type: table
-    width: 10
+    width: 7
     height: 4
 
   - id: k8s_helm_chart
@@ -215,10 +230,32 @@ panels:
     type: timeseries
     palette: classic
     latency_slo: true
-    fill_opacity: 40
+    fill_opacity: 35
     legend_placement: right
     legend_mode: list
     unit: s
+    width: 12
+    height: 9
+
+  - id: http_latency_topk_bargauge
+    signal: http_latency_avg_by_uri
+    title: Top APIs by avg latency
+    type: bargauge
+    theme: latency
+    unit: s
+    decimals: 2
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    instant: true
+    width: 12
+    height: 9
+
+  - id: http_latency_heatmap
+    signal: http_latency_heatmap
+    title: Latency density · heatmap
+    type: heatmap
+    y_unit: s
     width: 12
     height: 9
 
@@ -228,7 +265,7 @@ panels:
     type: timeseries
     palette: classic
     latency_slo: true
-    fill_opacity: 40
+    fill_opacity: 35
     legend_placement: right
     legend_mode: list
     unit: s
@@ -241,7 +278,7 @@ panels:
     type: timeseries
     palette: fixed
     color: dark-red
-    fill_opacity: 40
+    fill_opacity: 35
     unit: percentunit
     width: 8
     height: 8
@@ -350,18 +387,27 @@ panels:
     palette: classic
     fill_opacity: 30
     unit: reqps
-    width: 12
-    height: 7
+    width: 8
+    height: 8
 
   - id: http_requests_by_outcome
     signal: http_requests_by_outcome
-    title: Requests by outcome (one line each) · req/s
+    title: Requests by outcome · trend · req/s
     type: timeseries
     palette: classic
     fill_opacity: 30
     unit: reqps
-    width: 12
-    height: 7
+    width: 8
+    height: 8
+
+  - id: http_requests_by_outcome_pie
+    signal: http_requests_by_outcome
+    title: Outcome mix
+    type: piechart
+    pie_type: donut
+    unit: reqps
+    width: 8
+    height: 8
 
   - id: http_requests_2xx
     signal: http_requests_2xx
