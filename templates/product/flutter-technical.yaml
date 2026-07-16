@@ -1,0 +1,114 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: product-flutter-technical
+uid: product-am-flutter-technical
+title: "Product / Flutter Technical"
+folder: "AM / Product"
+tags: ["flutter", "rum", "technical"]
+
+panels:
+  - id: row_intro
+    type: row
+    title: "0 - Flutter RUM"
+
+  - id: text_intro
+    type: text
+    title: ""
+    width: 24
+    height: 3
+    content: |
+      **Flutter Technical** - screen/widget dwell, API timing, boot, client errors.
+      Same Loki job `am-product-telemetry`. Behavior / subscription: **Product / Users**.
+      Filter Env + Platform + Section. IDs hashed at ingest.
+
+  - id: row_dwell
+    type: row
+    title: "1 - Time spent"
+
+  - id: product_screen_dwell_avg
+    signal: product_screen_dwell_avg
+    title: Screens - avg dwell ms
+    type: bargauge
+    unit: ms
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 10
+
+  - id: product_widget_dwell_avg
+    signal: product_widget_dwell_avg
+    title: Widgets - avg timing ms
+    type: bargauge
+    unit: ms
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 10
+
+  - id: row_api
+    type: row
+    title: "2 - Client API + boot"
+
+  - id: product_api_timing_p95
+    signal: product_api_timing_p95
+    title: API - p95 ms
+    type: timeseries
+    palette: classic
+    unit: ms
+    width: 12
+    height: 8
+
+  - id: product_api_errors_by_status
+    signal: product_api_errors_by_status
+    title: API - by status
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 40
+    unit: short
+    width: 12
+    height: 8
+
+  - id: product_boot_rum_p95
+    signal: product_boot_rum_p95
+    title: Boot - p95 by platform
+    type: timeseries
+    palette: classic
+    unit: ms
+    width: 12
+    height: 8
+
+  - id: product_boot_rum_avg
+    signal: product_boot_rum_avg
+    title: Boot - avg by platform
+    type: bargauge
+    unit: ms
+    orientation: horizontal
+    display_mode: gradient
+    width: 12
+    height: 8
+
+  - id: row_errors
+    type: row
+    title: "3 - Client errors"
+
+  - id: product_client_errors
+    signal: product_client_errors
+    title: Client errors
+    type: stat
+    unit: short
+    width: 6
+    height: 5
+
+  - id: product_empty_states
+    signal: product_empty_states
+    title: Empty / stuck
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 18
+    height: 8

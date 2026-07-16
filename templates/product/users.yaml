@@ -17,9 +17,10 @@ panels:
     height: 4
     content: |
       **Product / Users** - Flutter first-party telemetry (`job=am-product-telemetry`) -> am-logging -> Loki.
-      **Platform** = `web` / `android` / `ios`. **DAU** ~= unique `anon_id`; **Logged-in** ~= unique `user_id`.
-      **Sections** = portfolio - trade - market - docs - ai - dashboard - auth - profile.
-      Filter **Env** + **Platform**. Empty = ingest/UI not deployed yet. This board != Technical / Functional (backend).
+      **Platform** = `web` / `android` / `ios`. **DAU** ~= unique `anon_id`; **Logged-in** ~= unique hashed `user_id`.
+      **Sections** = portfolio - trade - market - docs - ai - dashboard - auth - subscription - profile.
+      Filters: **Env** + **Platform** + **Section** + **User (hashed)** + **Portfolio**. Top screens use `route_template` (UUIDs collapsed).
+      RUM / slow widgets: see **Product / Flutter Technical**. IDs are hashed at ingest (privacy).
 
   - id: row_kpis
     type: row
@@ -434,6 +435,80 @@ panels:
     unit: ms
     orientation: horizontal
     display_mode: gradient
+    width: 12
+    height: 8
+
+  - id: row_auth_sub
+    type: row
+    title: "6b - Auth + Subscription interest"
+
+  - id: text_auth_sub
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Auth / Subscription** - entry sections, auth page views, logouts, pricing visits and plan CTAs.
+      Filter **User (hashed)** / **Section**. Technical RUM: **Product / Flutter Technical**.
+
+  - id: product_entry_sections
+    signal: product_entry_sections
+    title: Entry sections
+    type: piechart
+    width: 8
+    height: 8
+
+  - id: product_auth_views
+    signal: product_auth_views
+    title: Auth - views
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_auth_logouts
+    signal: product_auth_logouts
+    title: Auth - logouts
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_subscription_views
+    signal: product_subscription_views
+    title: Subscription - views
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_feedback_avg
+    signal: product_feedback_avg
+    title: Feedback - avg score
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_subscription_cta
+    signal: product_subscription_cta
+    title: Subscription - plan CTAs
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 8
+
+  - id: product_empty_states
+    signal: product_empty_states
+    title: Empty / stuck reasons
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
     width: 12
     height: 8
 

@@ -236,17 +236,21 @@ signals:
   product_top_screens:
     id: product_top_screens
     kind: log
-    description: Top screens by screen_view count
+    description: Top screens by route_template (UUIDs collapsed)
     panel_type: bargauge
     adapters: [loki]
     adapter_map:
       loki:
         expr_template: >-
           topk(15,
-            sum by (screen) (
+            sum by (route_template) (
               count_over_time(
                 {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
-                | json | screen != "" [$__range]
+                | json
+                | section=~"$section"
+                | user_id=~"$user_id"
+                | portfolio_id=~"$portfolio_id"
+                | route_template != "" [$__range]
               )
             )
           )
@@ -550,3 +554,157 @@ signals:
             {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
             | json | section="auth" [$__range]
           ))
+  product_subscription_views:
+    id: product_subscription_views
+    kind: log
+    description: Subscription section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+            | json | section="subscription" | user_id=~"$user_id" [$__range]
+          ))
+
+  product_subscription_cta:
+    id: product_subscription_cta
+    kind: log
+    description: Subscription plan CTA / upgrade attempts
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(10,
+            sum by (plan_code) (
+              count_over_time(
+                {job="am-product-telemetry", event="feature_action", env=~"$env", platform=~"$platform"}
+                | json
+                | action=~"plan_cta_click|upgrade_attempt|subscribe_attempt"
+                | plan_code != ""
+                | user_id=~"$user_id" [$__range]
+              )
+            )
+          )
+
+  product_auth_logouts:
+    id: product_auth_logouts
+    kind: log
+    description: auth_logout events
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="auth_logout", env=~"$env", platform=~"$platform"}
+            | json | user_id=~"$user_id" [$__range]
+          ))
+
+  product_entry_sections:
+    id: product_entry_sections
+    kind: log
+    description: Session entry sections
+    panel_type: piechart
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (entry_section) (
+            count_over_time(
+              {job="am-product-telemetry", event="session_start", env=~"$env", platform=~"$platform"}
+              | json | entry_section != "" | user_id=~"$user_id" [$__range]
+            )
+          )
+
+  product_screen_dwell_avg:
+    id: product_screen_dwell_avg
+    kind: log
+    description: Avg screen dwell ms by route_template
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(12,
+            avg by (route_template) (
+              avg_over_time(
+                {job="am-product-telemetry", event="screen_timing", env=~"$env", platform=~"$platform"}
+                | json
+                | section=~"$section"
+                | user_id=~"$user_id"
+                | portfolio_id=~"$portfolio_id"
+                | route_template != ""
+                | unwrap duration_ms [$__range]
+              )
+            )
+          )
+
+  product_widget_dwell_avg:
+    id: product_widget_dwell_avg
+    kind: log
+    description: Avg widget timing by widget
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(12,
+            avg by (widget) (
+              avg_over_time(
+                {job="am-product-telemetry", event="widget_timing", env=~"$env", platform=~"$platform"}
+                | json
+                | section=~"$section"
+                | widget != ""
+                | unwrap duration_ms [$__range]
+              )
+            )
+          )
+
+  product_client_errors:
+    id: product_client_errors
+    kind: log
+    description: Client error events
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="client_error", env=~"$env", platform=~"$platform"}
+            | json | section=~"$section" [$__range]
+          ))
+
+  product_feedback_avg:
+    id: product_feedback_avg
+    kind: log
+    description: Average feedback score
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          avg(
+            avg_over_time(
+              {job="am-product-telemetry", event="feedback_submit", env=~"$env", platform=~"$platform"}
+              | json | unwrap feedback_score [$__range]
+            )
+          )
+
+  product_empty_states:
+    id: product_empty_states
+    kind: log
+    description: Empty/stuck state events by reason
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (empty_reason) (
+            count_over_time(
+              {job="am-product-telemetry", event="empty_state", env=~"$env", platform=~"$platform"}
+              | json | empty_reason != "" | section=~"$section" [$__range]
+            )
+          )

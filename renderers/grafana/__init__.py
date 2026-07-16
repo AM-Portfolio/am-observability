@@ -990,7 +990,7 @@ def _var_loki_label(
 
 
 def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
-    """Env + Platform filters for Product / Users (Loki)."""
+    """Env + Platform + Section + User + Portfolio filters for Product boards."""
     env = str((ir.get("vars") or {}).get("env") or ir.get("env") or "preprod")
     ds_uid = "loki"
     inputs = ir.get("bindings_inputs") or {}
@@ -1015,6 +1015,42 @@ def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
                 include_all=True,
                 all_value=".+",
             ),
+            _var_custom(
+                "section",
+                "Section",
+                ".+",
+                [
+                    ".+",
+                    "portfolio",
+                    "trade",
+                    "market",
+                    "docs",
+                    "ai",
+                    "auth",
+                    "subscription",
+                    "dashboard",
+                    "profile",
+                    "analysis",
+                ],
+            ),
+            {
+                "name": "user_id",
+                "label": "User (hashed)",
+                "type": "textbox",
+                "hide": 0,
+                "query": ".+",
+                "current": {"selected": True, "text": ".+", "value": ".+"},
+                "options": [{"selected": True, "text": ".+", "value": ".+"}],
+            },
+            {
+                "name": "portfolio_id",
+                "label": "Portfolio",
+                "type": "textbox",
+                "hide": 0,
+                "query": ".+",
+                "current": {"selected": True, "text": ".+", "value": ".+"},
+                "options": [{"selected": True, "text": ".+", "value": ".+"}],
+            },
         ]
     }
 

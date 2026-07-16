@@ -284,6 +284,29 @@ def generate_shared(
             )
         )
 
+    flutter_tpl = getattr(ctx, "product_flutter_template", None) or {}
+    if flutter_tpl:
+        flutter_ir, fw1 = compose_shared_product(
+            ctx, env=prod_env, template=flutter_tpl
+        )
+        warnings_all.extend(fw1)
+        if flutter_ir:
+            flutter_adapted, fw2 = adapt(flutter_ir, ctx)
+            warnings_all.extend(fw2)
+            flutter_dash = render_grafana(flutter_adapted)
+            flutter_path = _publish_dashboard(
+                flutter_dash, ctx, folder_path="product"
+            )
+            results.append(
+                ServiceResult(
+                    id="product-am-flutter-technical",
+                    ok=True,
+                    path=str(flutter_path),
+                    uid=flutter_dash.get("uid"),
+                    warnings=fw1 + fw2,
+                )
+            )
+
     return dashboard, path, results
 
 

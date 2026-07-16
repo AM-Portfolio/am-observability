@@ -362,10 +362,11 @@ def compose_shared_product(
     ctx: Context,
     *,
     env: str = "preprod",
+    template: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
-    """Product / Users dashboard — Flutter telemetry via Loki (no Service dropdown)."""
+    """Product dashboards — Flutter telemetry via Loki (no Service dropdown)."""
     warnings: list[str] = []
-    template = ctx.product_template or {}
+    template = template if template is not None else (ctx.product_template or {})
     if not template:
         return {}, ["product template missing"]
 
@@ -384,7 +385,7 @@ def compose_shared_product(
         "app": "am-modern-ui",
         "application": "am-modern-ui",
         "env": env,
-        "tags": ["am", "product", "users", env],
+        "tags": ["am", "product", env, *(template.get("tags") or [])],
         "panels": panels_out,
         "vars": {
             "service": "am-modern-ui",
@@ -393,6 +394,9 @@ def compose_shared_product(
             "application": "am-modern-ui",
             "env": env,
             "platform": ".+",
+            "section": ".+",
+            "user_id": ".+",
+            "portfolio_id": ".+",
         },
     }
     return ir, warnings

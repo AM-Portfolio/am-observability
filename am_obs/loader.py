@@ -22,6 +22,7 @@ class Context:
     technical_template: dict[str, Any] = field(default_factory=dict)
     functional_template: dict[str, Any] = field(default_factory=dict)
     product_template: dict[str, Any] = field(default_factory=dict)
+    product_flutter_template: dict[str, Any] = field(default_factory=dict)
     registry: dict[str, Any] = field(default_factory=dict)
     platform_registry: dict[str, Any] = field(default_factory=dict)
 
@@ -49,6 +50,10 @@ def load_context(
         or {},
         functional_template=load_yaml(root / "templates" / "functional" / "domain-kpi.yaml") or {},
         product_template=load_yaml(root / "templates" / "product" / "users.yaml") or {},
+        product_flutter_template=load_yaml(
+            root / "templates" / "product" / "flutter-technical.yaml"
+        )
+        or {},
         registry=load_yaml(root / "services" / "registry.yaml") or {},
         platform_registry=load_yaml(root / "infra" / "registry.yaml") or {},
     )
