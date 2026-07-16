@@ -102,3 +102,42 @@ signals:
           ,namespace=\"$namespace\"}\n  or portfolio_holdings{application=\"$application\"\
           ,namespace=\"$namespace\"}\n) or vector(0)"
         legend: Holdings
+  trade_processed_total:
+    id: trade_processed_total
+    kind: metric
+    description: Total processed trades (domain counter)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  trade_processed_total{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: "Total Trades"
+  trade_portfolios_total:
+    id: trade_portfolios_total
+    kind: metric
+    description: Total portfolios (domain gauge)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  trade_portfolios_total{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: Portfolios
+  trade_active_portfolios_total:
+    id: trade_active_portfolios_total
+    kind: metric
+    description: Total active portfolios (domain gauge)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  trade_active_portfolios_total{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: "Active Portfolios"

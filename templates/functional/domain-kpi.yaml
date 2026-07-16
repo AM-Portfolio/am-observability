@@ -320,3 +320,40 @@ panels:
     display_mode: gradient
     width: 8
     height: 5
+
+  - id: trade_processed_total
+    signal: trade_processed_total
+    title: Trades (processed)
+    type: bargauge
+    theme: orange
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: trade_portfolios_total
+    signal: trade_portfolios_total
+    title: Portfolios (trades)
+    type: bargauge
+    theme: purple
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: trade_active_portfolios_total
+    signal: trade_active_portfolios_total
+    title: Active Portfolios (trades)
+    type: bargauge
+    theme: green
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
