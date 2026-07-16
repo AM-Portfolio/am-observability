@@ -5,25 +5,30 @@
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
-# Actions → release.yml uploads zip + catalog-index + schema
 ```
 
-Or locally:
+CI (`release.yml`): generate zip → GitHub Release → **dispatches am-infra** (needs secret `INFRA_DISPATCH_TOKEN`).
 
-```bash
-make package-release VERSION=v1.0.0
-# artifacts under dist/release/
+Push to `main` alone does **not** update Grafana.
+
+## am-infra apply (ConfigMaps only — no Grafana restart)
+
+Auto (preferred): am-obs tag → `repository_dispatch` → `obs-upgrade` `apply` on **self-hosted** (same as am-pipelines `central-deploy`, **no** Docker container).
+
+Manual: Actions → **obs-upgrade** → `mode=apply`, `version=v0.1.0`.
+
+```text
+kubectl apply -f k8s/grafana/dashboards/
+→ sidecar WATCH → Grafana file provider ~30s
+→ never rollout restart grafana
 ```
 
-## Pin + apply in am-infra
+`mode=pr-only` only opens a Git PR (no cluster).
 
-See [am-infra/k8s/grafana/dashboards/README.md](../../am-infra/k8s/grafana/dashboards/README.md).
+## Secret (one-time)
 
-Workflow: **obs-upgrade** (`pr-only` then `apply`). Sidecar reload only — no Grafana restart.
+| Secret | Repo | Purpose |
+|--------|------|---------|
+| `INFRA_DISPATCH_TOKEN` | am-observability | PAT/App token with `repo` on private am-infra for `repository_dispatch` |
 
-## Doctor a service manifest
-
-```bash
-python gen.py doctor ../am-portfolio/observability.yaml
-python gen.py doctor ../am-core-services/services/am-gateway/observability.yaml
-```
+Without it, release still publishes assets; run am-infra `obs-upgrade` apply manually.

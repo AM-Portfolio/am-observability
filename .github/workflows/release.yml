@@ -62,6 +62,23 @@ jobs:
             dist/release/schema/service-observability.schema.json
           generate_release_notes: true
 
+      - name: Dispatch am-infra to apply ConfigMaps (no Grafana restart)
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::warning::INFRA_DISPATCH_TOKEN not set — skip auto apply. Run am-infra obs-upgrade manually (mode=apply)."
+            exit 0
+          fi
+          VERSION="${{ steps.ver.outputs.version }}"
+          echo "Dispatching obs-dashboards-released version=$VERSION to AM-Portfolio/am-infra"
+          gh api repos/AM-Portfolio/am-infra/dispatches \
+            -f event_type='obs-dashboards-released' \
+            -f "client_payload[version]=${VERSION}" \
+            -f "client_payload[obs_repo]=AM-Portfolio/am-observability"
+
       - name: Upload workflow artifacts (dispatch)
         if: github.ref_type != 'tag'
         uses: actions/upload-artifact@v4
