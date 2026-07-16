@@ -36,7 +36,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "**Service health** — First stop in an incident: are pods up and scraping, restarting, and what **image / Helm chart / app version** is live?\nGreen KPIs → continue to Golden Signals. Red scrape/restarts → fix deploy before reading latency charts.\n",
+        "content": "**Service health** — Pods, scrape, restarts, resources, and live image. Soft KPIs (value color + sparkline); solid green/red only for scrape.\nHelm / app version need pod labels on scraped series — empty means labels not present yet (not a broken chart).\n",
         "mode": "markdown"
       },
       "title": "",
@@ -82,7 +82,7 @@
       "options": {
         "colorMode": "background",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -91,7 +91,8 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
@@ -148,9 +149,9 @@
       },
       "id": 4,
       "options": {
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -159,7 +160,8 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
@@ -188,7 +190,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
+                "color": "semi-dark-blue",
                 "value": null
               }
             ]
@@ -208,9 +210,9 @@
       },
       "id": 5,
       "options": {
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -219,7 +221,8 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
@@ -248,7 +251,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-blue",
+                "color": "semi-dark-blue",
                 "value": null
               }
             ]
@@ -268,9 +271,9 @@
       },
       "id": 6,
       "options": {
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -279,7 +282,8 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
       "targets": [
         {
@@ -343,11 +347,25 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "smooth",
-            "lineWidth": 2,
+            "barAlignment": 0,
+            "lineWidth": 3,
             "fillOpacity": 35.0,
             "gradientMode": "opacity",
             "showPoints": "never",
-            "spanNulls": true
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "short"
         },
@@ -362,13 +380,14 @@
       "id": 9,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+          "displayMode": "list",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
-            "mean",
-            "lastNotNull"
-          ]
+            "lastNotNull",
+            "max"
+          ],
+          "width": 160
         },
         "tooltip": {
           "mode": "multi",
@@ -389,6 +408,7 @@
         }
       ],
       "title": "Container CPU usage",
+      "transparent": false,
       "type": "timeseries"
     },
     {
@@ -405,11 +425,25 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "smooth",
-            "lineWidth": 2,
+            "barAlignment": 0,
+            "lineWidth": 3,
             "fillOpacity": 35.0,
             "gradientMode": "opacity",
             "showPoints": "never",
-            "spanNulls": true
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "unit": "bytes"
         },
@@ -424,13 +458,14 @@
       "id": 10,
       "options": {
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+          "displayMode": "list",
+          "placement": "right",
           "showLegend": true,
           "calcs": [
-            "mean",
-            "lastNotNull"
-          ]
+            "lastNotNull",
+            "max"
+          ],
+          "width": 160
         },
         "tooltip": {
           "mode": "multi",
@@ -451,6 +486,7 @@
         }
       ],
       "title": "Container memory",
+      "transparent": false,
       "type": "timeseries"
     },
     {
@@ -569,7 +605,8 @@
     "am",
     "technical",
     "am-logging",
-    "preprod"
+    "preprod",
+    "sre"
   ],
   "templating": {
     "list": [
@@ -759,6 +796,126 @@
           "value": "$__all"
         },
         "options": []
+      },
+      {
+        "name": "mongo_command",
+        "label": "Mongo cmd (5a)",
+        "type": "query",
+        "hide": 0,
+        "multi": false,
+        "includeAll": true,
+        "allValue": ".*",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(mongodb_driver_commands_seconds_count{application=\"$application\",namespace=\"$namespace\"}, command)",
+        "query": "label_values(mongodb_driver_commands_seconds_count{application=\"$application\",namespace=\"$namespace\"}, command)",
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "redis_command",
+        "label": "Redis cmd (5b)",
+        "type": "query",
+        "hide": 0,
+        "multi": false,
+        "includeAll": true,
+        "allValue": ".*",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(lettuce_command_completion_seconds_count{application=\"$application\",namespace=\"$namespace\"}, command)",
+        "query": "label_values(lettuce_command_completion_seconds_count{application=\"$application\",namespace=\"$namespace\"}, command)",
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "kafka_listener",
+        "label": "Kafka listener (5c)",
+        "type": "query",
+        "hide": 0,
+        "multi": false,
+        "includeAll": true,
+        "allValue": ".*",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(spring_kafka_listener_seconds_count{application=\"$application\",namespace=\"$namespace\"}, name)",
+        "query": "label_values(spring_kafka_listener_seconds_count{application=\"$application\",namespace=\"$namespace\"}, name)",
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "kafka_topic",
+        "label": "Kafka topic (5c)",
+        "type": "query",
+        "hide": 0,
+        "multi": false,
+        "includeAll": true,
+        "allValue": ".*",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(kafka_consumer_fetch_manager_records_lag{application=\"$application\",namespace=\"$namespace\"}, topic)",
+        "query": "label_values(kafka_consumer_fetch_manager_records_lag{application=\"$application\",namespace=\"$namespace\"}, topic)",
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "hikari_pool",
+        "label": "Hikari pool (5d)",
+        "type": "query",
+        "hide": 0,
+        "multi": false,
+        "includeAll": true,
+        "allValue": ".*",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(hikaricp_connections_active{application=\"$application\",namespace=\"$namespace\"}, pool)",
+        "query": "label_values(hikaricp_connections_active{application=\"$application\",namespace=\"$namespace\"}, pool)",
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
       }
     ]
   },
@@ -767,7 +924,7 @@
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "",
+  "timezone": "browser",
   "title": "Technical / am-logging",
   "uid": "tech-am-logging",
   "version": 1

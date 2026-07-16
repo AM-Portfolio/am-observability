@@ -25,39 +25,65 @@ def _thresholds(steps: list[dict[str, Any]]) -> dict[str, Any]:
 def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
     color = panel.get("color") or _BLUE
-    fill = float(panel.get("fill_opacity", 25))
+    fill = float(panel.get("fill_opacity", 55))
     palette = panel.get("palette") or "classic"
     if palette == "fixed":
         color_cfg: dict[str, Any] = {"mode": "fixed", "fixedColor": color}
     else:
         color_cfg = {"mode": "palette-classic"}
     legend_fmt = panel.get("legend") or "__auto"
+    draw_style = panel.get("draw_style") or "line"
+    stack = panel.get("stack")
+    stacking: dict[str, Any] = {"mode": "none", "group": "A"}
+    if stack in (True, "normal"):
+        stacking = {"mode": "normal", "group": "A"}
+    elif stack == "percent":
+        stacking = {"mode": "percent", "group": "A"}
+
+    custom: dict[str, Any] = {
+        "drawStyle": draw_style,
+        "lineInterpolation": "smooth",
+        "barAlignment": 0,
+        "lineWidth": 3 if draw_style == "line" else 1,
+        "fillOpacity": fill,
+        "gradientMode": "scheme" if palette != "fixed" else "opacity",
+        "showPoints": "never",
+        "spanNulls": True,
+        "axisBorderShow": False,
+        "axisSoftMin": 0,
+        "axisLabel": "",
+        "scaleDistribution": {"type": "linear"},
+        "stacking": stacking,
+        "thresholdsStyle": {"mode": "off"},
+    }
+
+    legend_mode = panel.get("legend_mode") or "list"
+    legend_placement = panel.get("legend_placement") or "right"
+    calcs = panel.get("legend_calcs") or ["lastNotNull", "max"]
+
+    defaults: dict[str, Any] = {
+        "color": color_cfg,
+        "custom": custom,
+        "unit": panel.get("unit") or "short",
+    }
+    if panel.get("decimals") is not None:
+        defaults["decimals"] = panel["decimals"]
+
     return {
         "datasource": ds,
         "fieldConfig": {
-            "defaults": {
-                "color": color_cfg,
-                "custom": {
-                    "drawStyle": "line",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 2,
-                    "fillOpacity": fill,
-                    "gradientMode": "opacity",
-                    "showPoints": "never",
-                    "spanNulls": True,
-                },
-                "unit": panel.get("unit") or "short",
-            },
+            "defaults": defaults,
             "overrides": [],
         },
         "gridPos": panel["gridPos"],
         "id": panel_id,
         "options": {
             "legend": {
-                "displayMode": "table",
-                "placement": "bottom",
+                "displayMode": legend_mode,
+                "placement": legend_placement,
                 "showLegend": True,
-                "calcs": ["mean", "lastNotNull"],
+                "calcs": calcs,
+                "width": 160 if legend_placement == "right" else 0,
             },
             "tooltip": {"mode": "multi", "sort": "desc"},
         },
@@ -72,6 +98,7 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             }
         ],
         "title": panel["title"],
+        "transparent": bool(panel.get("transparent") or False),
         "type": "timeseries",
     }
 
@@ -80,6 +107,8 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
     theme = panel.get("theme") or "health"  # health | neutral | restarts | ratio | decision
     mappings = list(panel.get("mappings") or [])
+    # Soft modern KPIs: value-colored by default; solid background only for decision / scrape.
+    color_mode = "value"
     if theme == "restarts":
         steps = [
             {"color": _GREEN, "value": None},
@@ -93,6 +122,7 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             {"color": _RED, "value": 0.05},
         ]
     elif theme == "decision":
+        color_mode = "background"
         steps = [
             {"color": _RED, "value": None},
             {"color": _YELLOW, "value": 1},
@@ -110,12 +140,16 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 }
             ]
     elif theme == "neutral":
-        steps = [{"color": _BLUE, "value": None}]
-    else:  # health / up
+        steps = [{"color": "semi-dark-blue", "value": None}]
+    else:  # health / up — keep readable scrape status
+        color_mode = "background"
         steps = [
             {"color": _RED, "value": None},
             {"color": _GREEN, "value": 1},
         ]
+
+    if panel.get("color_mode"):
+        color_mode = str(panel["color_mode"])
 
     return {
         "datasource": ds,
@@ -132,12 +166,13 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "gridPos": panel["gridPos"],
         "id": panel_id,
         "options": {
-            "colorMode": "background",
+            "colorMode": color_mode,
             "graphMode": "area" if theme != "decision" else "none",
-            "justifyMode": "auto",
+            "justifyMode": "center",
             "orientation": "auto",
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
             "textMode": "auto",
+            "wideLayout": True,
         },
         "targets": [
             {
@@ -193,6 +228,9 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
             "showThresholdLabels": False,
             "showThresholdMarkers": True,
+            "sizing": "auto",
+            "minVizHeight": 80,
+            "minVizWidth": 80,
         },
         "targets": [
             {
@@ -646,7 +684,7 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 regex=r'/v="[^#]+#[^#]+#(?<value>[^"]+)"/',
                 datasource_uid=ds_uid,
             ),
-            # Drill-down: All = sum across APIs; pick one path for deep latency/5xx view
+            # HTTP only — Method / API path do not affect dep panels
             _var_prom_label(
                 "method",
                 "HTTP method",
@@ -667,6 +705,57 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 ),
                 datasource_uid=ds_uid,
             ),
+            # Dep filters — only wired into section 5a–5d PromQL (not HTTP/JVM/K8s)
+            _var_prom_label(
+                "mongo_command",
+                "Mongo cmd (5a)",
+                query=(
+                    "label_values("
+                    'mongodb_driver_commands_seconds_count{application="$application",'
+                    'namespace="$namespace"}, command)'
+                ),
+                datasource_uid=ds_uid,
+            ),
+            _var_prom_label(
+                "redis_command",
+                "Redis cmd (5b)",
+                query=(
+                    "label_values("
+                    'lettuce_command_completion_seconds_count{application="$application",'
+                    'namespace="$namespace"}, command)'
+                ),
+                datasource_uid=ds_uid,
+            ),
+            _var_prom_label(
+                "kafka_listener",
+                "Kafka listener (5c)",
+                query=(
+                    "label_values("
+                    'spring_kafka_listener_seconds_count{application="$application",'
+                    'namespace="$namespace"}, name)'
+                ),
+                datasource_uid=ds_uid,
+            ),
+            _var_prom_label(
+                "kafka_topic",
+                "Kafka topic (5c)",
+                query=(
+                    "label_values("
+                    'kafka_consumer_fetch_manager_records_lag{application="$application",'
+                    'namespace="$namespace"}, topic)'
+                ),
+                datasource_uid=ds_uid,
+            ),
+            _var_prom_label(
+                "hikari_pool",
+                "Hikari pool (5d)",
+                query=(
+                    "label_values("
+                    'hikaricp_connections_active{application="$application",'
+                    'namespace="$namespace"}, pool)'
+                ),
+                datasource_uid=ds_uid,
+            ),
         ]
     }
 
@@ -680,11 +769,16 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
         # Pass optional viz hints from template through unchanged
         panels.append(renderer(panel, idx))
 
+    tags = list(ir.get("tags") or [])
+    for t in ("am", "sre", "technical"):
+        if t not in tags:
+            tags.append(t)
+
     return {
         "annotations": {"list": []},
         "editable": True,
         "fiscalYearStartMonth": 0,
-        "graphTooltip": 1,
+        "graphTooltip": 1,  # shared crosshair
         "id": None,
         "links": [],
         "liveNow": False,
@@ -692,11 +786,11 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
         "refresh": "30s",
         "schemaVersion": 38,
         "style": "dark",
-        "tags": list(ir.get("tags") or []),
+        "tags": tags,
         "templating": _templating(ir),
         "time": {"from": "now-1h", "to": "now"},
         "timepicker": {},
-        "timezone": "",
+        "timezone": "browser",
         "title": ir["title"],
         "uid": ir["uid"],
         "version": 1,

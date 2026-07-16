@@ -64,8 +64,8 @@ panels:
     width: 24
     height: 2
     content: |
-      **Service health** — First stop in an incident: are pods up and scraping, restarting, and what **image / Helm chart / app version** is live?
-      Green KPIs → continue to Golden Signals. Red scrape/restarts → fix deploy before reading latency charts.
+      **Service health** — Pods, scrape, restarts, resources, and live image. Soft KPIs (value color + sparkline); solid green/red only for scrape.
+      Helm / app version need pod labels on scraped series — empty means labels not present yet (not a broken chart).
 
   - id: k8s_pod_count
     signal: k8s_pod_count
@@ -136,24 +136,24 @@ panels:
 
   - id: k8s_image_version
     signal: k8s_image_version
-    title: Running image(s)
+    title: Running image
     type: table
-    width: 8
-    height: 5
+    width: 10
+    height: 4
 
   - id: k8s_helm_chart
     signal: k8s_helm_chart
-    title: Helm chart (deploy)
+    title: Helm chart
     type: table
-    width: 8
-    height: 5
+    width: 7
+    height: 4
 
   - id: k8s_app_version
     signal: k8s_app_version
     title: App version
     type: table
-    width: 8
-    height: 5
+    width: 7
+    height: 4
 
   # ── 2. Golden Signals (use HTTP method + API path dropdowns) ─
   - id: row_golden
@@ -171,45 +171,54 @@ panels:
 
   - id: http_request_rate
     signal: http_request_rate
-    title: Traffic — TOTAL rate (sum of matching APIs) · req/s
+    title: Traffic · TOTAL · req/s
     type: timeseries
     palette: fixed
     color: dark-blue
-    fill_opacity: 40
+    fill_opacity: 55
+    legend_placement: right
+    legend_mode: list
     unit: reqps
     width: 12
-    height: 8
+    height: 9
 
   - id: http_requests_by_uri
     signal: http_requests_by_uri
-    title: Traffic — per API (one line each) · req/s
+    title: Traffic · per API · req/s
     type: timeseries
     palette: classic
-    fill_opacity: 20
+    stack: true
+    fill_opacity: 70
+    legend_placement: right
+    legend_mode: list
     unit: reqps
     width: 12
-    height: 8
+    height: 9
 
   - id: http_latency_p95
     signal: http_latency_p95
-    title: Latency — p95 TOTAL (sum/filter) · seconds
+    title: Latency · p95 TOTAL · s
     type: timeseries
     palette: fixed
-    color: dark-purple
-    fill_opacity: 35
+    color: dark-orange
+    fill_opacity: 50
+    legend_placement: right
+    legend_mode: list
     unit: s
     width: 12
-    height: 8
+    height: 9
 
   - id: http_latency_p95_by_uri
     signal: http_latency_p95_by_uri
-    title: Latency — p95 per API (one line each) · seconds
+    title: Latency · p95 per API · s
     type: timeseries
     palette: classic
-    fill_opacity: 15
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
     unit: s
     width: 12
-    height: 8
+    height: 9
 
   - id: http_error_ratio
     signal: http_error_ratio
@@ -378,7 +387,7 @@ panels:
     width: 24
     height: 7
 
-  # ── 5. Dependencies ────────────────────────────────────────
+  # ── 5. Dependencies (section-scoped filters in top bar) ────
   - id: row_mongo
     type: row
     title: "5a · MongoDB"
@@ -390,42 +399,54 @@ panels:
     width: 24
     height: 2
     content: |
-      **MongoDB** — Command rate, p95 latency, and pool usage. Rising checked-out / pool size with latency spikes often means connection pressure or slow queries.
+      **MongoDB** — Filter with **Mongo cmd (5a)** only. Stacked rate by command · latency uses p95 when buckets exist, otherwise avg.
 
   - id: mongo_commands
     signal: mongo_commands
-    title: Mongo command rate
+    title: Mongo · command rate
     type: timeseries
-    color: dark-green
-    fill_opacity: 30
+    palette: classic
+    stack: true
+    fill_opacity: 70
+    legend_placement: right
+    legend_mode: list
+    unit: ops
     width: 12
-    height: 7
+    height: 9
 
   - id: mongo_commands_p95
     signal: mongo_commands_p95
-    title: Mongo command p95
+    title: Mongo · latency (p95 / avg)
     type: timeseries
-    color: dark-purple
-    fill_opacity: 30
+    palette: classic
+    fill_opacity: 45
+    legend_placement: right
+    legend_mode: list
     unit: s
     width: 12
-    height: 7
+    height: 9
 
   - id: mongo_pool_checkedout
     signal: mongo_pool_checkedout
-    title: Mongo pool checked-out
+    title: Mongo · pool checked-out
     type: timeseries
     color: dark-orange
-    fill_opacity: 30
+    palette: fixed
+    fill_opacity: 50
+    legend_placement: right
+    legend_mode: list
     width: 12
     height: 7
 
   - id: mongo_pool_size
     signal: mongo_pool_size
-    title: Mongo pool size
+    title: Mongo · pool size
     type: timeseries
     color: dark-blue
-    fill_opacity: 25
+    palette: fixed
+    fill_opacity: 50
+    legend_placement: right
+    legend_mode: list
     width: 12
     height: 7
 
@@ -440,26 +461,32 @@ panels:
     width: 24
     height: 2
     content: |
-      **Redis** — Command rate and p95. Empty panels mean the app is not emitting Lettuce metrics yet (or Redis is unused).
+      **Redis** — Filter with **Redis cmd (5b)** only. Stacked per-command rate + latency.
 
   - id: redis_commands
     signal: redis_commands
-    title: Redis command rate
+    title: Redis · command rate
     type: timeseries
-    color: dark-red
-    fill_opacity: 30
+    palette: classic
+    stack: true
+    fill_opacity: 70
+    legend_placement: right
+    legend_mode: list
+    unit: ops
     width: 12
-    height: 7
+    height: 9
 
   - id: redis_commands_p95
     signal: redis_commands_p95
-    title: Redis command p95
+    title: Redis · latency (p95 / avg)
     type: timeseries
-    color: dark-purple
-    fill_opacity: 30
+    palette: classic
+    fill_opacity: 45
+    legend_placement: right
+    legend_mode: list
     unit: s
     width: 12
-    height: 7
+    height: 9
 
   - id: row_kafka
     type: row
@@ -472,44 +499,118 @@ panels:
     width: 24
     height: 2
     content: |
-      **Kafka** — Listener rate, failures, p95 duration, and consumer lag. Growing lag + listener errors → consumer stuck or poison messages.
+      **Kafka** — **Kafka listener (5c)** for rate/errors/latency · **Kafka topic (5c)** for lag only.
 
   - id: kafka_listener
     signal: kafka_listener
-    title: Kafka listener rate
+    title: Kafka · listener rate
     type: timeseries
-    color: dark-blue
-    fill_opacity: 30
+    palette: classic
+    stack: true
+    fill_opacity: 70
+    legend_placement: right
+    legend_mode: list
+    unit: ops
     width: 12
-    height: 7
+    height: 9
 
   - id: kafka_listener_errors
     signal: kafka_listener_errors
-    title: Kafka listener failures
+    title: Kafka · listener failures
     type: timeseries
-    color: dark-red
-    fill_opacity: 40
+    palette: classic
+    stack: true
+    fill_opacity: 60
+    legend_placement: right
+    legend_mode: list
+    unit: ops
     width: 12
-    height: 7
+    height: 9
 
   - id: kafka_listener_p95
     signal: kafka_listener_p95
-    title: Kafka listener p95
+    title: Kafka · listener latency
     type: timeseries
-    color: dark-purple
-    fill_opacity: 30
+    palette: classic
+    fill_opacity: 45
+    legend_placement: right
+    legend_mode: list
     unit: s
     width: 12
-    height: 7
+    height: 9
 
   - id: kafka_consumer_lag
     signal: kafka_consumer_lag
-    title: Kafka consumer lag
+    title: Kafka · lag by topic
     type: timeseries
-    color: dark-orange
-    fill_opacity: 35
+    palette: classic
+    stack: true
+    fill_opacity: 65
+    legend_placement: right
+    legend_mode: list
     width: 12
-    height: 7
+    height: 9
+
+  - id: row_hikari
+    type: row
+    title: "5d · SQL / HikariCP"
+    collapsed: true
+
+  - id: text_hikari
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Hikari** — Filter with **Hikari pool (5d)** only. Pool pressure, not per-table.
+
+  - id: hikari_connections_active
+    signal: hikari_connections_active
+    title: Hikari · active
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 65
+    legend_placement: right
+    legend_mode: list
+    width: 12
+    height: 8
+
+  - id: hikari_connections_pending
+    signal: hikari_connections_pending
+    title: Hikari · pending
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 65
+    legend_placement: right
+    legend_mode: list
+    width: 12
+    height: 8
+
+  - id: hikari_connections_idle
+    signal: hikari_connections_idle
+    title: Hikari · idle
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 55
+    legend_placement: right
+    legend_mode: list
+    width: 12
+    height: 8
+
+  - id: hikari_connections_timeout
+    signal: hikari_connections_timeout
+    title: Hikari · timeouts
+    type: timeseries
+    color: dark-red
+    palette: fixed
+    fill_opacity: 55
+    legend_placement: right
+    legend_mode: list
+    width: 12
+    height: 8
 
   # ── 6. JVM / process (detail) ──────────────────────────────
   - id: row_jvm

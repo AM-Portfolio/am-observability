@@ -174,6 +174,7 @@ def _panel_candidates(
                     for k in (
                         "theme",
                         "color",
+                        "color_mode",
                         "unit",
                         "decimals",
                         "fill_opacity",
@@ -182,6 +183,12 @@ def _panel_candidates(
                         "mappings",
                         "palette",
                         "legend",
+                        "stack",
+                        "draw_style",
+                        "legend_mode",
+                        "legend_placement",
+                        "legend_calcs",
+                        "transparent",
                     )
                     if k in panel
                 },

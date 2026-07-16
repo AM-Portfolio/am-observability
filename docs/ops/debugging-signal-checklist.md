@@ -12,7 +12,8 @@ Use this when deepening observability for AM microservices. The shared dashboard
 | Golden Signals | Traffic, latency p50/p75/p95, 5xx ratio/rate, process CPU; Method + API path filters |
 | API SLO table | Per endpoint: Total, 2xx, 4xx, **5xx**, Fail, avg, p50, **p75**, p90, p95 |
 | HTTP trends | Status / outcome / outbound client (collapsed by default) |
-| Dependencies | Mongo / Redis / Kafka rate + p95 + pool/lag (collapsed) |
+| Dependencies | Mongo / Redis / Kafka / Hikari — **section-scoped** filters (cmd / listener / topic / pool); multi-color per-entity rate + p95; pool/lag |
+| Look & feel | Soft KPI value colors (not brick stats); gradient timeseries; shared crosshair; tags `am`/`sre` |
 | JVM detail | Heap, GC, threads, Tomcat, FDs (collapsed) |
 | K8s pressure | CPU + memory timeseries (collapsed) |
 | Evidence | Tempo link → **Error logs** → Logs |
@@ -45,10 +46,12 @@ Use this when deepening observability for AM microservices. The shared dashboard
 - SLO burn-rate panels (error budget)
 
 ### Dependencies
-- DB acquire time / timeouts / pool exhaustion
-- Kafka lag **by topic/partition**, rebalances
+- ~~Kafka lag by topic~~ (shipped: topic filter + per-topic lag; listener filter for rate/p95)
+- ~~Redis by command~~ (shipped)
+- ~~Hikari pool active/pending/idle/timeouts~~ (shipped; empty until JDBC enabled)
+- Mongo **collection** / SQL **table** filters (need app `@Timed` — Micrometer has no table label)
+- Kafka rebalances, partition lag UI
 - Cache hit ratio, Redis timeouts
-
 ### Correlation
 - `trace_id` extracted in Loki → Tempo links
 - Exemplars from Prometheus histograms to Tempo

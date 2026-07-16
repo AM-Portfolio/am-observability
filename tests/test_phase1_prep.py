@@ -33,11 +33,26 @@ def test_metrics_application_as_grafana_var():
     assert 'application="portfolio-app"' not in joined
     # Service dropdown + derived vars (app/application hidden)
     by_name = {v["name"]: v for v in dashboard["templating"]["list"]}
-    assert set(by_name) >= {"namespace", "service_pack", "service", "app", "application", "method", "uri"}
+    assert set(by_name) >= {
+        "namespace",
+        "service_pack",
+        "service",
+        "app",
+        "application",
+        "method",
+        "uri",
+        "mongo_command",
+        "redis_command",
+        "kafka_listener",
+        "kafka_topic",
+        "hikari_pool",
+    }
     assert by_name["uri"]["type"] == "query"
     assert by_name["uri"]["includeAll"] is True
     assert by_name["method"]["includeAll"] is True
     assert by_name["uri"]["label"] == "API path"
+    assert by_name["mongo_command"]["includeAll"] is True
+    assert by_name["kafka_topic"]["label"] == "Kafka topic (5c)"
     assert by_name["namespace"]["type"] == "custom"
     assert by_name["service_pack"]["type"] == "custom"
     assert by_name["service_pack"]["label"] == "Service"
@@ -54,9 +69,19 @@ def test_metrics_application_as_grafana_var():
     assert "Health score" in titles
     assert "Decision" in titles
     assert any("Action checklist" == t or "Action checklist" in t for t in titles)
-    assert "Helm chart (deploy)" in titles
+    assert "Helm chart" in titles
+    assert any("Hikari" in t for t in titles)
+    # Dep filters only in dep exprs; HTTP still uses method/uri
+    assert "$mongo_command" in joined or 'command=~"$mongo_command"' in joined
+    assert "$kafka_topic" in joined or 'topic=~"$kafka_topic"' in joined
     log_titles = [p["title"] for p in dashboard["panels"] if p["type"] == "logs"]
     assert log_titles == ["Error logs", "Logs"]
+    # Soft KPI stats (value color) for neutral pods
+    pods = next(p for p in dashboard["panels"] if p["title"] == "Pods")
+    assert pods["options"]["colorMode"] == "value"
+    # Decision stays solid background
+    decision = next(p for p in dashboard["panels"] if p["title"] == "Decision")
+    assert decision["options"]["colorMode"] == "background"
     # API table includes p75
     api = next(p for p in dashboard["panels"] if p["type"] == "table" and "API" in p["title"])
     legends = [t.get("refId") for t in api.get("targets") or []]
