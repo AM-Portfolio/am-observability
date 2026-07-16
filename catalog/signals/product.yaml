@@ -1,0 +1,552 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: product
+dashboard: functional
+signals:
+  # ── Reach / identity ───────────────────────────────────────────────────────
+  product_dau:
+    id: product_dau
+    kind: log
+    description: Unique anon devices in range
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count(
+            sum by (anon_id) (
+              count_over_time(
+                {job="am-product-telemetry", env=~"$env", platform=~"$platform"}
+                | json | anon_id != "" [$__range]
+              )
+            )
+          )
+
+  product_logged_in_users:
+    id: product_logged_in_users
+    kind: log
+    description: Unique authenticated user_id in range
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count(
+            sum by (user_id) (
+              count_over_time(
+                {job="am-product-telemetry", env=~"$env", platform=~"$platform"}
+                | json | user_id != "" [$__range]
+              )
+            )
+          )
+
+  product_sessions:
+    id: product_sessions
+    kind: log
+    description: Distinct session_start sessions
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count(
+            sum by (session_id) (
+              count_over_time(
+                {job="am-product-telemetry", event="session_start", env=~"$env", platform=~"$platform"}
+                | json | session_id != "" [$__range]
+              )
+            )
+          )
+
+  product_events_total:
+    id: product_events_total
+    kind: log
+    description: Total product events in range
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time({job="am-product-telemetry", env=~"$env", platform=~"$platform"}[$__range]))
+
+  product_screen_views_total:
+    id: product_screen_views_total
+    kind: log
+    description: screen_view count in range
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time({job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}[$__range]))
+
+  product_feature_actions_total:
+    id: product_feature_actions_total
+    kind: log
+    description: feature_action count in range
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time({job="am-product-telemetry", event="feature_action", env=~"$env", platform=~"$platform"}[$__range]))
+
+  # ── Platform mix ───────────────────────────────────────────────────────────
+  product_users_by_platform:
+    id: product_users_by_platform
+    kind: log
+    description: Unique anon_ids by platform
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count by (platform) (
+            sum by (platform, anon_id) (
+              count_over_time(
+                {job="am-product-telemetry", env=~"$env", platform=~"$platform"}
+                | json | anon_id != "" [$__range]
+              )
+            )
+          )
+
+  product_logged_in_by_platform:
+    id: product_logged_in_by_platform
+    kind: log
+    description: Unique user_id by platform
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count by (platform) (
+            sum by (platform, user_id) (
+              count_over_time(
+                {job="am-product-telemetry", env=~"$env", platform=~"$platform"}
+                | json | user_id != "" [$__range]
+              )
+            )
+          )
+
+  product_events_by_platform:
+    id: product_events_by_platform
+    kind: log
+    description: Event rate by platform
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (platform) (
+            count_over_time({job="am-product-telemetry", env=~"$env", platform=~"$platform"}[$__interval])
+          )
+
+  product_sessions_by_platform:
+    id: product_sessions_by_platform
+    kind: log
+    description: session_start by platform over time
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (platform) (
+            count_over_time(
+              {job="am-product-telemetry", event="session_start", env=~"$env", platform=~"$platform"}[$__interval]
+            )
+          )
+
+  product_events_by_type:
+    id: product_events_by_type
+    kind: log
+    description: Event mix by event label
+    panel_type: piechart
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (event) (
+            count_over_time({job="am-product-telemetry", env=~"$env", platform=~"$platform"}[$__range])
+          )
+
+  product_events_by_type_rate:
+    id: product_events_by_type_rate
+    kind: log
+    description: Event rate by type
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (event) (
+            count_over_time({job="am-product-telemetry", env=~"$env", platform=~"$platform"}[$__interval])
+          )
+
+  # ── Sections / screens ─────────────────────────────────────────────────────
+  product_screen_views_by_section:
+    id: product_screen_views_by_section
+    kind: log
+    description: screen_view by section
+    panel_type: piechart
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (section) (
+            count_over_time(
+              {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+              | json | section != "" [$__range]
+            )
+          )
+
+  product_screen_views_rate:
+    id: product_screen_views_rate
+    kind: log
+    description: screen_view rate by section
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (section) (
+            count_over_time(
+              {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+              | json | section != "" [$__interval]
+            )
+          )
+
+  product_users_by_section:
+    id: product_users_by_section
+    kind: log
+    description: Unique anon_ids that viewed each section
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count by (section) (
+            sum by (section, anon_id) (
+              count_over_time(
+                {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+                | json | section != "" | anon_id != "" [$__range]
+              )
+            )
+          )
+
+  product_top_screens:
+    id: product_top_screens
+    kind: log
+    description: Top screens by screen_view count
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(15,
+            sum by (screen) (
+              count_over_time(
+                {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+                | json | screen != "" [$__range]
+              )
+            )
+          )
+
+  # ── Feature actions ────────────────────────────────────────────────────────
+  product_feature_actions_by_action:
+    id: product_feature_actions_by_action
+    kind: log
+    description: feature_action by action name
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(15,
+            sum by (action) (
+              count_over_time(
+                {job="am-product-telemetry", event="feature_action", env=~"$env", platform=~"$platform"}
+                | json | action != "" [$__range]
+              )
+            )
+          )
+
+  product_feature_actions_rate:
+    id: product_feature_actions_rate
+    kind: log
+    description: feature_action rate by section
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (section) (
+            count_over_time(
+              {job="am-product-telemetry", event="feature_action", env=~"$env", platform=~"$platform"}
+              | json | section != "" [$__interval]
+            )
+          )
+
+  # ── Client RUM ─────────────────────────────────────────────────────────────
+  product_api_timing_p95:
+    id: product_api_timing_p95
+    kind: log
+    description: Client API p95 ms by platform
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          quantile_over_time(0.95,
+            {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
+            | json | unwrap duration_ms [$__interval]
+          ) by (platform)
+
+  product_api_timing_avg_by_section:
+    id: product_api_timing_avg_by_section
+    kind: log
+    description: Client API avg ms by section
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          avg_over_time(
+            {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
+            | json | unwrap duration_ms [$__interval]
+          ) by (section)
+
+  product_api_timing_slow_paths:
+    id: product_api_timing_slow_paths
+    kind: log
+    description: Slowest client API paths by avg ms
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(15,
+            avg by (path) (
+              avg_over_time(
+                {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
+                | json | unwrap duration_ms [$__range]
+              )
+            )
+          )
+
+  product_api_errors_by_status:
+    id: product_api_errors_by_status
+    kind: log
+    description: Client API calls by HTTP status
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (status) (
+            count_over_time(
+              {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
+              | json | status != "" [$__interval]
+            )
+          )
+
+  product_boot_rum_p95:
+    id: product_boot_rum_p95
+    kind: log
+    description: Boot totalMs p95 by platform
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          quantile_over_time(0.95,
+            {job="am-product-telemetry", event="boot_rum", env=~"$env", platform=~"$platform"}
+            | json | unwrap duration_ms [$__interval]
+          ) by (platform)
+
+  product_boot_rum_avg:
+    id: product_boot_rum_avg
+    kind: log
+    description: Boot totalMs avg by platform
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          avg by (platform) (
+            avg_over_time(
+              {job="am-product-telemetry", event="boot_rum", env=~"$env", platform=~"$platform"}
+              | json | unwrap duration_ms [$__range]
+            )
+          )
+
+  # ── Portfolio deep-dive (Flutter section=portfolio) ────────────────────────
+  product_portfolio_views:
+    id: product_portfolio_views
+    kind: log
+    description: Portfolio section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(
+            count_over_time(
+              {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+              | json | section="portfolio" [$__range]
+            )
+          )
+
+  product_portfolio_users:
+    id: product_portfolio_users
+    kind: log
+    description: Unique users who opened portfolio
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          count(
+            sum by (anon_id) (
+              count_over_time(
+                {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+                | json | section="portfolio" | anon_id != "" [$__range]
+              )
+            )
+          )
+
+  product_portfolio_screens:
+    id: product_portfolio_screens
+    kind: log
+    description: Top portfolio screens
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(12,
+            sum by (screen) (
+              count_over_time(
+                {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+                | json | section="portfolio" | screen != "" [$__range]
+              )
+            )
+          )
+
+  product_portfolio_views_rate:
+    id: product_portfolio_views_rate
+    kind: log
+    description: Portfolio screen_view rate by platform
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum by (platform) (
+            count_over_time(
+              {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+              | json | section="portfolio" [$__interval]
+            )
+          )
+
+  product_portfolio_api_p95:
+    id: product_portfolio_api_p95
+    kind: log
+    description: Client API p95 while on portfolio section
+    panel_type: timeseries
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          quantile_over_time(0.95,
+            {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
+            | json | section="portfolio" | unwrap duration_ms [$__interval]
+          ) by (platform)
+
+  product_portfolio_actions:
+    id: product_portfolio_actions
+    kind: log
+    description: feature_action in portfolio section
+    panel_type: bargauge
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          topk(12,
+            sum by (action) (
+              count_over_time(
+                {job="am-product-telemetry", event="feature_action", env=~"$env", platform=~"$platform"}
+                | json | section="portfolio" | action != "" [$__range]
+              )
+            )
+          )
+
+  # ── Trade / market / AI siblings (lighter) ─────────────────────────────────
+  product_trade_views:
+    id: product_trade_views
+    kind: log
+    description: Trade section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+            | json | section="trade" [$__range]
+          ))
+
+  product_market_views:
+    id: product_market_views
+    kind: log
+    description: Market section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+            | json | section="market" [$__range]
+          ))
+
+  product_ai_views:
+    id: product_ai_views
+    kind: log
+    description: AI section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+            | json | section="ai" [$__range]
+          ))
+
+  product_docs_views:
+    id: product_docs_views
+    kind: log
+    description: Docs section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+            | json | section="docs" [$__range]
+          ))
+
+  product_auth_views:
+    id: product_auth_views
+    kind: log
+    description: Auth section screen_views
+    panel_type: stat
+    adapters: [loki]
+    adapter_map:
+      loki:
+        expr_template: >-
+          sum(count_over_time(
+            {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
+            | json | section="auth" [$__range]
+          ))

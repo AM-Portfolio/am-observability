@@ -179,6 +179,24 @@ def test_functional_shared_published():
     assert not (ROOT / "dist" / "grafana" / "func-am-portfolio.yaml").exists()
 
 
+def test_product_users_dashboard_published():
+    """Shared generate publishes Product / Users with Loki platform panels."""
+    rc = generate()
+    assert rc == 0
+    report = json.loads((ROOT / "dist" / "report.json").read_text(encoding="utf-8"))
+    assert "product-am-users" in report["passed"]
+    path = ROOT / "dist" / "grafana" / "product-am-users.yaml"
+    assert path.is_file()
+    text = path.read_text(encoding="utf-8")
+    assert "Product / Users" in text
+    assert "am-product-telemetry" in text
+    assert "by (platform)" in text
+    assert "by (section)" in text
+    assert "count_over_time" in text
+    assert '"type": "loki"' in text or "type: loki" in text
+    assert 'grafana_folder: "product"' in text or "product" in text
+
+
 def test_platform_dashboards_generated():
     """Default generate also emits Platform / Overview + Redis."""
     rc = generate()
