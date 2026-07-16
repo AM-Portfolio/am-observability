@@ -48,13 +48,20 @@ jobs:
         id: ver
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
+          set -euo pipefail
+          release_exists() {
+            gh api "repos/${GH_REPO}/releases/tags/$1" >/dev/null 2>&1
+          }
+
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "create_tag=false" >> "$GITHUB_OUTPUT"
           elif [[ -n "${{ github.event.inputs.version || '' }}" ]]; then
             VERSION="${{ github.event.inputs.version }}"
+            VERSION="$(echo "$VERSION" | sed -E 's/^[[:space:]]*am-observability[[:space:]]+//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
             if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "version must look like vX.Y.Z, got: $VERSION"
               exit 1
@@ -62,10 +69,10 @@ jobs:
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "create_tag=true" >> "$GITHUB_OUTPUT"
           else
-            # Prefer recovering the tip tag when a prior run left a tag but no Release
-            # (failed softprops uploads orphan tags and break obs-upgrade downloads).
+            # Reuse tip tag only when it truly has no GitHub Release (orphan from a
+            # failed publish). Prefer the Releases API over `gh release view`.
             LATEST="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
-            if [[ -n "$LATEST" ]] && ! gh release view "$LATEST" >/dev/null 2>&1; then
+            if [[ -n "$LATEST" ]] && ! release_exists "$LATEST"; then
               VERSION="$LATEST"
               echo "Reusing orphaned tip tag $VERSION (tag exists, no release)"
             elif [[ -z "$LATEST" ]]; then
@@ -73,6 +80,7 @@ jobs:
             else
               IFS='.' read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
               VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+              echo "Tip $LATEST already has a release — next is $VERSION"
             fi
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "create_tag=true" >> "$GITHUB_OUTPUT"
@@ -109,10 +117,11 @@ jobs:
           test -f dist/release/schema/service-observability.schema.json
 
       # softprops/action-gh-release was returning GitHub Unicorn HTML and never
-      # creating the Release object (tags v0.4.4/v0.4.5 orphaned). Use gh CLI.
+      # creating the Release object. Use gh CLI with explicit repo + already-exists handling.
       - name: Create GitHub release and upload assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
@@ -128,6 +137,10 @@ jobs:
             test -f "$f"
           done
 
+          release_exists() {
+            gh api "repos/${GH_REPO}/releases/tags/$1" >/dev/null 2>&1
+          }
+
           # Tag may take a moment to be visible to the Releases API
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if git ls-remote --exit-code --tags origin "refs/tags/${VERSION}" >/dev/null 2>&1; then
@@ -137,7 +150,7 @@ jobs:
             sleep 2
           done
 
-          if gh release view "$VERSION" >/dev/null 2>&1; then
+          if release_exists "$VERSION"; then
             echo "Release ${VERSION} already exists — uploading assets (clobber)"
             CREATE=false
           else
@@ -145,35 +158,40 @@ jobs:
             CREATE=true
           fi
 
-          # Retry: GitHub occasionally returns Unicorn/5xx mid-upload; softprops
-          # treated that as fatal and left tags without Releases.
+          # Retry: GitHub occasionally returns Unicorn/5xx; also handle already_exists.
           for attempt in 1 2 3; do
+            set +e
             if [[ "$CREATE" == "true" ]]; then
-              # Title must be the tag (vX.Y.Z). Naming it "am-observability vX.Y.Z"
-              # causes ops to paste the title into obs-upgrade and fail download.
-              if gh release create "$VERSION" "${ASSETS[@]}" \
+              # Title must be the tag (vX.Y.Z), not "am-observability vX.Y.Z".
+              OUT=$(gh release create "$VERSION" "${ASSETS[@]}" \
+                -R "$GH_REPO" \
                 --verify-tag \
                 --generate-notes \
                 --title "${VERSION}" \
-                --latest; then
-                break
-              fi
+                --latest 2>&1)
+              RC=$?
             else
-              if gh release upload "$VERSION" "${ASSETS[@]}" --clobber; then
-                break
-              fi
+              OUT=$(gh release upload "$VERSION" "${ASSETS[@]}" -R "$GH_REPO" --clobber 2>&1)
+              RC=$?
+            fi
+            set -e
+            echo "$OUT"
+            if [[ "$RC" -eq 0 ]]; then
+              break
+            fi
+            if echo "$OUT" | grep -qi "already exists"; then
+              echo "Release exists — switching to asset upload"
+              CREATE=false
+            elif release_exists "$VERSION"; then
+              CREATE=false
             fi
             if [[ "$attempt" -eq 3 ]]; then
               echo "Release publish failed after ${attempt} attempts"
               exit 1
             fi
-            # If create partially succeeded, switch to upload on retry
-            if gh release view "$VERSION" >/dev/null 2>&1; then
-              CREATE=false
-            fi
             sleep $((attempt * 10))
           done
-          gh release view "$VERSION"
+          gh release view "$VERSION" -R "$GH_REPO"
 
       - name: Dispatch am-infra to apply ConfigMaps (no Grafana restart)
         env:
