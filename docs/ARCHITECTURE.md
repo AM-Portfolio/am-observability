@@ -2,61 +2,55 @@
 
 ## Goal
 
-Switch **feeds** (logs/metrics/traces) and **dashboard UI** independently — same provider or mixed — without rewriting templates.
+Switch **feeds** (logs/metrics/traces) and **dashboard UI** independently — same provider or mixed — without rewriting templates. Scale to ~100 repos with **zero service inventory in am-observability**.
 
 ## Repos
 
 | Concern | Owns it |
 |---------|---------|
-| Catalog, templates, adapters, renderers, bindings, registry | **am-observability** |
-| Prometheus, Grafana, Loki, Tempo, OTEL, Traefik, datasource secrets | **am-infra** |
-| Per-service KPIs / tier / `k8s_app_label` | **Each service** → `observability.yaml` |
+| Catalog, templates, adapters, renderers, bindings, release artifacts | **am-observability** |
+| Prometheus, Grafana, Loki, Tempo, OTEL, **pinned** dashboard ConfigMaps, `obs-upgrade` | **am-infra** |
+| Per-service KPIs / tier / labels / optional panel prefs | **Each service** → `observability.yaml` |
 
-## Pipeline
+## Three planes
 
 ```text
-registry.yaml → load service observability.yaml
-    → validate (JSON Schema)
-    → compose IR (template ∩ signals.uses)
-    → adapt (PromQL / LogQL / Trace link + datasource_uid)
-    → render (Grafana JSON)
-    → publish (ConfigMap)
-    → pin copy into am-infra/k8s/grafana/dashboards/
+Plane A — Service deploy
+  observability.yaml + scrape annotations
+  → Prometheus discovers application=
+  → shared tech-am-services dropdown (no am-obs/am-infra PR)
+
+Plane B — Shared dashboard upgrade
+  am-obs tag → package-release zip
+  → am-infra obs-upgrade (PR then kubectl apply ConfigMaps)
+  → k8s-sidecar + Grafana file provider (~30s)
+  → NO Grafana pod/DB restart
+
+Plane C — Optional service view
+  dashboard.panels / rows in service yaml
+  → gen.py compose-view → tech-view-{service} ConfigMap
 ```
 
-## Bindings (inputs ≠ outputs)
+## Pipeline (compiler)
 
-```yaml
-inputs:
-  metrics: { adapter: prometheus, datasource_uid: prometheus }
-  logs:    { adapter: loki,       datasource_uid: loki }
-  traces:  { adapter: tempo,      datasource_uid: tempo }
-outputs:
-  dashboards: { renderer: grafana, publisher: grafana_configmap }
+```text
+catalog + templates → compose IR → adapt → render Grafana JSON → ConfigMap YAML
+                     → package-release → GitHub Release asset
 ```
 
-Changing log provider while keeping Grafana still requires an **am-infra Grafana datasource** for that provider.
+Service manifests are **not** required to build shared `tech-am-services` / platform dashboards.
 
-## Pilots
+## Bindings
 
-| Order | Service | Tier | Expectation |
-|-------|---------|------|-------------|
-| 1a | am-portfolio | A (Java) | RED + JVM + logs + k8s + Tempo link |
-| 1b | am-logging | B (Python) | logs + health/k8s only — no blank Prom charts |
+Shared LGTM: single [`bindings/platform.yaml`](../bindings/platform.yaml). App env via `$namespace` / manifest `namespace:`.
 
-Acceptance env: **`am-apps-preprod`**.
+## am-infra role
 
-## Bindings vs app env
+- Runtime for Grafana/Prometheus on VPS.
+- Git pin: `k8s/grafana/dashboards/` + `OBSERVABILITY_VERSION`.
+- CI: `.github/workflows/obs-upgrade.yml` (`pr-only` | `apply` on self-hosted runner).
+- Does **not** register services; does **not** store panel prefs.
 
-Shared LGTM (one `monitoring` stack for `am-apps-preprod|prod|dev`): use a **single** binding file [`bindings/platform.yaml`](../bindings/platform.yaml). App environment is selected via Grafana `$namespace` and/or each service `observability.yaml` `namespace:` — not via `bindings/prod.yaml` copies. Only add another binding when datasource UIDs or the monitoring cluster differ.
+## Non-goals
 
-## Scale (50+)
-
-- Source of truth: `{service-repo}/observability.yaml`
-- Discovery: `services/registry.yaml` (pointers only)
-- Partial generate: `--only <id>`
-- Wave rollout — do not enable all 50 at once
-
-## Non-goals (Phase 1)
-
-Alertmanager cluster, notebooks, inventing functional KPIs, publishing `func-*` dashboards, production Datadog adapter, dialects inside templates.
+Alertmanager cluster, inventing per-service Grafana JSON in app repos, registration DB, hand Copy-Item of `dist/` into am-infra.

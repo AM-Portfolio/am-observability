@@ -4337,7 +4337,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "**Redis** — Filter with **Redis cmd (5b)** only. Stacked per-command rate + latency.\n",
+        "content": "**Redis** — Filter with **Redis cmd (5b)** only. Command rate + latency + cache **hit/miss/ratio** (when Spring cache metrics are enabled).\n",
         "mode": "markdown"
       },
       "title": "",
@@ -4519,14 +4519,278 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#73BF69"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 35.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "ops",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 166
+      },
+      "id": 62,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(\n  rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m])\n) or sum(\n  rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m])\n)",
+          "legendFormat": "hit",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Redis cache · hit rate",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F2495C"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 35.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "ops",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 166
+      },
+      "id": 63,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(\n  rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m])\n) or sum(\n  rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m])\n)",
+          "legendFormat": "miss",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Redis cache · miss rate",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5794F2"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 35.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "percentunit",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 166
+      },
+      "id": 64,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(\n  (\n    sum(rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n    or sum(rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n  )\n)\n/\nclamp_min(\n  (\n    (\n      sum(rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n      or sum(rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n    )\n    +\n    (\n      sum(rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m]))\n      or sum(rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m]))\n    )\n  ),\n  1e-9\n)",
+          "legendFormat": "hit-ratio",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Redis cache · hit ratio",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 166
+        "y": 173
       },
-      "id": 62,
+      "id": 65,
       "panels": [],
       "title": "5c · Kafka",
       "type": "row"
@@ -4536,16 +4800,16 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 167
+        "y": 174
       },
-      "id": 63,
+      "id": 66,
       "options": {
         "code": {
           "language": "markdown",
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "**Kafka** — **Kafka listener (5c)** for rate/errors/latency · **Kafka topic (5c)** for lag only.\n",
+        "content": "**Kafka** — **Kafka listener (5c)** for rate/errors/latency, plus **topic usage** (consume/produce rate) and topic lag.\n",
         "mode": "markdown"
       },
       "title": "",
@@ -4603,9 +4867,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 169
+        "y": 176
       },
-      "id": 64,
+      "id": 67,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4690,9 +4954,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 169
+        "y": 176
       },
-      "id": 65,
+      "id": 68,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4777,9 +5041,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 178
+        "y": 185
       },
-      "id": 66,
+      "id": 69,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4864,9 +5128,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 178
+        "y": 185
       },
-      "id": 67,
+      "id": 70,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4901,14 +5165,188 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 50,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "ops",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 194
+      },
+      "id": 71,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "topk(20, (\n  sum by (topic) (\n    rate(kafka_consumer_records_consumed_total{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n  or\n  sum by (topic) (\n    rate(spring_kafka_listener_seconds_count{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n))",
+          "legendFormat": "{{topic}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Kafka · consume by topic",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 50,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "ops",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 194
+      },
+      "id": 72,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "topk(20, (\n  sum by (topic) (\n    rate(kafka_producer_record_send_total{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n  or\n  sum by (topic) (\n    rate(spring_kafka_template_seconds_count{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n))",
+          "legendFormat": "{{topic}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Kafka · produce by topic",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
       "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 187
+        "y": 202
       },
-      "id": 68,
+      "id": 73,
       "panels": [],
       "title": "5d · SQL / HikariCP",
       "type": "row"
@@ -4918,9 +5356,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 188
+        "y": 203
       },
-      "id": 69,
+      "id": 74,
       "options": {
         "code": {
           "language": "markdown",
@@ -4985,9 +5423,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 190
+        "y": 205
       },
-      "id": 70,
+      "id": 75,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5072,9 +5510,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 190
+        "y": 205
       },
-      "id": 71,
+      "id": 76,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5159,9 +5597,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 198
+        "y": 213
       },
-      "id": 72,
+      "id": 77,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5247,9 +5685,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 198
+        "y": 213
       },
-      "id": 73,
+      "id": 78,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5289,9 +5727,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 206
+        "y": 221
       },
-      "id": 74,
+      "id": 79,
       "panels": [],
       "title": "6 · JVM / process",
       "type": "row"
@@ -5301,9 +5739,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 207
+        "y": 222
       },
-      "id": 75,
+      "id": 80,
       "options": {
         "code": {
           "language": "markdown",
@@ -5368,9 +5806,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 209
+        "y": 224
       },
-      "id": 76,
+      "id": 81,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5456,9 +5894,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 209
+        "y": 224
       },
-      "id": 77,
+      "id": 82,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5544,9 +5982,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 209
+        "y": 224
       },
-      "id": 78,
+      "id": 83,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5631,9 +6069,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 216
+        "y": 231
       },
-      "id": 79,
+      "id": 84,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5719,9 +6157,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 216
+        "y": 231
       },
-      "id": 80,
+      "id": 85,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5807,9 +6245,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 216
+        "y": 231
       },
-      "id": 81,
+      "id": 86,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5895,9 +6333,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 223
+        "y": 238
       },
-      "id": 82,
+      "id": 87,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5983,9 +6421,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 223
+        "y": 238
       },
-      "id": 83,
+      "id": 88,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -6070,9 +6508,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 223
+        "y": 238
       },
-      "id": 84,
+      "id": 89,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -6112,9 +6550,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 230
+        "y": 245
       },
-      "id": 85,
+      "id": 90,
       "panels": [],
       "title": "7 · Kubernetes pressure",
       "type": "row"
@@ -6124,9 +6562,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 231
+        "y": 246
       },
-      "id": 86,
+      "id": 91,
       "options": {
         "code": {
           "language": "markdown",
@@ -6192,9 +6630,9 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 233
+        "y": 248
       },
-      "id": 87,
+      "id": 92,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -6280,9 +6718,9 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 233
+        "y": 248
       },
-      "id": 88,
+      "id": 93,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -6322,9 +6760,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 240
+        "y": 255
       },
-      "id": 89,
+      "id": 94,
       "panels": [],
       "title": "8 · Evidence — traces & logs",
       "type": "row"
@@ -6334,9 +6772,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 241
+        "y": 256
       },
-      "id": 90,
+      "id": 95,
       "options": {
         "code": {
           "language": "markdown",
@@ -6355,9 +6793,9 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 243
+        "y": 258
       },
-      "id": 91,
+      "id": 96,
       "options": {
         "code": {
           "language": "markdown",
@@ -6379,9 +6817,9 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 246
+        "y": 261
       },
-      "id": 92,
+      "id": 97,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
@@ -6416,9 +6854,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 255
+        "y": 270
       },
-      "id": 93,
+      "id": 98,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,

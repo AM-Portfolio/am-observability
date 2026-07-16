@@ -61,6 +61,53 @@
     "functional": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "dashboard": {
+      "type": "object",
+      "description": "Plane C: panel/row visibility for optional service-view compose. Omit to use shared tech-am-services only.",
+      "additionalProperties": false,
+      "properties": {
+        "technical": { "$ref": "#/$defs/dashboardPrefs" },
+        "functional": { "$ref": "#/$defs/dashboardPrefs" }
+      }
+    }
+  },
+  "$defs": {
+    "dashboardPrefs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "panels": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "include": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "If set, only these panel ids (and matching signal ids) are kept"
+            },
+            "exclude": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "rows": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hide": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Row ids to drop entirely (e.g. row_mongo)"
+            },
+            "collapse": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
     }
   }
 }

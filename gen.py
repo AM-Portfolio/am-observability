@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""am-observability CLI: validate | generate [--only ID] [--platform-only ID] ..."""
+"""am-observability CLI: validate | generate | package-release | doctor | compose-view"""
 
 from __future__ import annotations
 
@@ -7,6 +7,9 @@ import argparse
 import sys
 from pathlib import Path
 
+from am_obs.compose_view import compose_service_view
+from am_obs.doctor import cmd_doctor
+from am_obs.package import package_release
 from am_obs.pipeline import generate
 from am_obs.validate import cmd_validate
 
@@ -56,6 +59,40 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_generate.set_defaults(func=_run_generate)
 
+    p_pkg = sub.add_parser(
+        "package-release",
+        help="Zip shared dashboards + catalog-index for am-infra obs-upgrade",
+    )
+    p_pkg.add_argument(
+        "--version",
+        required=True,
+        help="Release version tag (e.g. v1.4.0)",
+    )
+    p_pkg.set_defaults(func=_run_package)
+
+    p_doctor = sub.add_parser("doctor", help="Validate a service observability.yaml")
+    p_doctor.add_argument("manifest", type=Path, help="Path to observability.yaml")
+    p_doctor.add_argument(
+        "--index",
+        type=Path,
+        default=None,
+        help="Optional catalog-index.json (default: build from local catalog)",
+    )
+    p_doctor.set_defaults(func=_run_doctor)
+
+    p_view = sub.add_parser(
+        "compose-view",
+        help="Plane C: compose filtered tech-view-{service} ConfigMap",
+    )
+    p_view.add_argument("--manifest", type=Path, required=True)
+    p_view.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Output dir (default: dist/grafana)",
+    )
+    p_view.set_defaults(func=_run_compose_view)
+
     return parser
 
 
@@ -72,6 +109,20 @@ def _run_generate(args: argparse.Namespace) -> int:
         platform=not args.no_platform,
         platform_only=args.platform_only,
     )
+
+
+def _run_package(args: argparse.Namespace) -> int:
+    package_release(args.version)
+    return 0
+
+
+def _run_doctor(args: argparse.Namespace) -> int:
+    return cmd_doctor(args.manifest, index=args.index)
+
+
+def _run_compose_view(args: argparse.Namespace) -> int:
+    compose_service_view(args.manifest, out_dir=args.out)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,5 +1,9 @@
-# Service registry (pointers only — manifests live in each service repo)
-# Set enabled: true when that pilot/wave is ready for generate.
+# Service registry (optional pointers for local generate fixtures only)
+#
+# Do NOT grow this file for every production service.
+# Plane A: services appear via Prometheus labels after deploy.
+# Shared dashboards do not require registry entries.
+#
 services:
   - id: am-portfolio
     repo: am-portfolio

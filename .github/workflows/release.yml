@@ -1,0 +1,70 @@
+# Release shared Grafana dashboards for am-infra obs-upgrade (Plane B)
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label when not tagging (e.g. v0.0.0-dev)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release-dashboards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Validate
+        run: make validate
+
+      - name: Test
+        run: make test
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=v0.0.0-dev.${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate + package
+        run: make package-release VERSION=${{ steps.ver.outputs.version }}
+
+      - name: Upload release assets (tag)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/release/grafana-dashboards-${{ steps.ver.outputs.version }}.zip
+            dist/release/grafana-dashboards-${{ steps.ver.outputs.version }}.zip.sha256
+            dist/release/catalog-index.json
+            dist/release/compat.json
+            dist/release/schema/service-observability.schema.json
+          generate_release_notes: true
+
+      - name: Upload workflow artifacts (dispatch)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: grafana-dashboards-${{ steps.ver.outputs.version }}
+          path: dist/release/

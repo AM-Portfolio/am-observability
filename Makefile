@@ -5,12 +5,15 @@ ONLY ?=
 CONTINUE ?=
 BINDING ?=
 FIXTURE ?=
+VERSION ?=
 
-.PHONY: validate test generate release help
+.PHONY: validate test generate release package-release doctor help
 
 help:
-	@echo "Targets: validate test generate release"
+	@echo "Targets: validate test generate package-release release doctor"
 	@echo "  make generate ONLY=am-portfolio CONTINUE=1"
+	@echo "  make package-release VERSION=v1.0.0"
+	@echo "  make doctor MANIFEST=../am-portfolio/observability.yaml"
 
 validate:
 	$(PYTHON) gen.py validate $(if $(BINDING),--binding $(BINDING),)
@@ -25,7 +28,14 @@ generate:
 		$(if $(BINDING),--binding $(BINDING),) \
 		$(if $(FIXTURE),--fixture $(FIXTURE),)
 
-release:
-	@mkdir -p dist
-	@echo "Packaging dist/ artifacts"
-	@test -d dist/grafana && echo "grafana artifacts present" || echo "run make generate first"
+package-release:
+	@test -n "$(VERSION)" || (echo "VERSION required, e.g. make package-release VERSION=v1.0.0" && exit 1)
+	$(PYTHON) gen.py generate
+	$(PYTHON) gen.py package-release --version $(VERSION)
+
+release: package-release
+	@echo "Artifacts in dist/release/ — upload via GitHub Release (see .github/workflows/release.yml)"
+
+doctor:
+	@test -n "$(MANIFEST)" || (echo "MANIFEST required" && exit 1)
+	$(PYTHON) gen.py doctor $(MANIFEST)

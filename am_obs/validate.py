@@ -61,9 +61,34 @@ def validate_manifest(manifest: dict[str, Any], ctx: Context, source: str = "man
                     f"{source}: bundle '{bundle}' runtime mismatch "
                     f"(manifest={manifest.get('runtime')} bundle={expected_runtime})"
                 )
-    for bundle_id in sig.get("include") or []:
-        if str(bundle_id) not in (ctx.signal_bundles or {}):
-            errors.append(f"{source}: unknown bundle '{bundle_id}'")
+    for item in sig.get("include") or []:
+        name = str(item)
+        if name in (ctx.signal_bundles or {}):
+            continue
+        if name not in known:
+            errors.append(f"{source}: unknown include id '{name}' (not a bundle or signal)")
+
+    # Plane C dashboard prefs: ids must exist on templates or as signal ids
+    from am_obs.catalog_index import build_catalog_index
+    from am_obs.prefs import collect_pref_ids
+
+    index = build_catalog_index(ctx)
+    known_panels = set(index.get("panel_ids") or [])
+    known_rows = set(index.get("row_ids") or [])
+    dash = manifest.get("dashboard") or {}
+    if dash and not isinstance(dash, dict):
+        errors.append(f"{source}: dashboard must be a mapping")
+    elif isinstance(dash, dict):
+        for section in ("technical", "functional"):
+            prefs = dash.get(section) or {}
+            if prefs and not isinstance(prefs, dict):
+                errors.append(f"{source}: dashboard.{section} must be a mapping")
+                continue
+            for pid in collect_pref_ids(prefs if isinstance(prefs, dict) else {}):
+                if pid not in known_panels and pid not in known_rows and pid not in known:
+                    errors.append(
+                        f"{source}: dashboard.{section} unknown id '{pid}'"
+                    )
     return errors
 
 

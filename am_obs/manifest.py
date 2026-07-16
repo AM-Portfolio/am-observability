@@ -23,8 +23,13 @@ def resolve_manifest_signals(manifest: dict, ctx: Context) -> ResolvedSignals:
     if bundle:
         technical |= expand_bundle(str(bundle), ctx.root)
 
-    for bundle_id in sig.get("include") or []:
-        technical |= expand_bundle(str(bundle_id), ctx.root)
+    # include: extra signal ids, or additional bundle ids (hybrid)
+    for item in sig.get("include") or []:
+        name = str(item)
+        if name in (ctx.signal_bundles or {}):
+            technical |= expand_bundle(name, ctx.root)
+        else:
+            technical.add(name)
 
     for name, ids in (sig.get("groups") or {}).items():
         if name == "domain":
