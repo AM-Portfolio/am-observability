@@ -149,7 +149,7 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "color": color_cfg,
         "custom": custom,
         "unit": panel.get("unit") or "short",
-        "noValue": "—",
+        "noValue": "-",
     }
     if panel.get("decimals") is not None:
         defaults["decimals"] = panel["decimals"]

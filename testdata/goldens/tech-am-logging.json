@@ -1030,7 +1030,7 @@
             }
           },
           "unit": "short",
-          "noValue": "—"
+          "noValue": "-"
         },
         "overrides": []
       },
@@ -1118,7 +1118,7 @@
             }
           },
           "unit": "bytes",
-          "noValue": "—"
+          "noValue": "-"
         },
         "overrides": []
       },
