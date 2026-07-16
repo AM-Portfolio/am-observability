@@ -90,6 +90,42 @@ signals:
           $application\",namespace=\"$namespace\",command=~\"$redis_command\"}[5m])\n\
           \    ),\n    1e-9\n  )\n)"
         legend: '{{command}}'
+  redis_cache_hit_rate:
+    id: redis_cache_hit_rate
+    kind: metric
+    description: Redis cache hit rate (Spring cache meters with fallback names)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m])\n) or sum(\n  rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m])\n)"
+        legend: hit
+  redis_cache_miss_rate:
+    id: redis_cache_miss_rate
+    kind: metric
+    description: Redis cache miss rate (Spring cache meters with fallback names)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m])\n) or sum(\n  rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m])\n)"
+        legend: miss
+  redis_cache_hit_ratio:
+    id: redis_cache_hit_ratio
+    kind: metric
+    description: Redis cache hit ratio from Spring cache hit/miss counters
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  (\n    sum(rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n    or sum(rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n  )\n)\n/\nclamp_min(\n  (\n    (\n      sum(rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n      or sum(rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"hit\",cache=~\"$redis_command\"}[5m]))\n    )\n    +\n    (\n      sum(rate(cache_gets_total{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m]))\n      or sum(rate(cache_gets{application=\"$application\",namespace=\"$namespace\",result=\"miss\",cache=~\"$redis_command\"}[5m]))\n    )\n  ),\n  1e-9\n)"
+        legend: hit-ratio
   kafka_listener:
     id: kafka_listener
     kind: metric
@@ -150,6 +186,30 @@ signals:
           $application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"})\n  or\
           \ sum by (topic) (spring_kafka_listener_lag{application=\"$application\"\
           ,namespace=\"$namespace\",topic=~\"$kafka_topic\"})\n))"
+        legend: '{{topic}}'
+  kafka_consume_by_topic:
+    id: kafka_consume_by_topic
+    kind: metric
+    description: Kafka consume rate by topic (client side)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "topk(20, (\n  sum by (topic) (\n    rate(kafka_consumer_records_consumed_total{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n  or\n  sum by (topic) (\n    rate(spring_kafka_listener_seconds_count{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n))"
+        legend: '{{topic}}'
+  kafka_produce_by_topic:
+    id: kafka_produce_by_topic
+    kind: metric
+    description: Kafka produce rate by topic (client side)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "topk(20, (\n  sum by (topic) (\n    rate(kafka_producer_record_send_total{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n  or\n  sum by (topic) (\n    rate(spring_kafka_template_seconds_count{application=\"$application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"}[5m])\n  )\n))"
         legend: '{{topic}}'
   hikari_connections_active:
     id: hikari_connections_active

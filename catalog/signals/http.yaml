@@ -307,6 +307,66 @@ signals:
       prometheus:
         expr_template: sum by (client_name, uri, status) (rate(http_client_requests_seconds_count{application="$application"}[5m]))
         legend: '{{client_name}} {{status}}'
+  http_client_requests_by_target:
+    id: http_client_requests_by_target
+    kind: metric
+    description: Outbound HTTP client call rate by downstream target
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (client_name) (rate(http_client_requests_seconds_count{application="$application"}[5m])))
+        legend: '{{client_name}}'
+  http_client_error_rate:
+    id: http_client_error_rate
+    kind: metric
+    description: Outbound 5xx error rate by downstream target
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (client_name) (rate(http_client_requests_seconds_count{application="$application",status=~"5.."}[5m])))
+        legend: '{{client_name}}'
+  http_client_error_ratio:
+    id: http_client_error_ratio
+    kind: metric
+    description: Outbound 5xx ratio across all internal client calls
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: (sum(rate(http_client_requests_seconds_count{application="$application",status=~"5.."}[5m])) / clamp_min(sum(rate(http_client_requests_seconds_count{application="$application"}[5m])), 1e-9)) or vector(0)
+        legend: outbound 5xx ratio
+  http_client_latency_avg:
+    id: http_client_latency_avg
+    kind: metric
+    description: Outbound HTTP client average latency by downstream target
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (client_name) (rate(http_client_requests_seconds_sum{application="$application"}[5m])) / clamp_min(sum by (client_name) (rate(http_client_requests_seconds_count{application="$application"}[5m])), 1e-9))
+        legend: '{{client_name}}'
+  http_client_latency_p95:
+    id: http_client_latency_p95
+    kind: metric
+    description: Outbound HTTP client p95 latency by downstream target (or avg fallback)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(topk(15, histogram_quantile(0.95, sum by (client_name, le) (rate(http_client_requests_seconds_bucket{application=\"$application\"}[5m])))) or topk(15, sum by (client_name) (rate(http_client_requests_seconds_sum{application=\"$application\"}[5m])) / clamp_min(sum by (client_name) (rate(http_client_requests_seconds_count{application=\"$application\"}[5m])), 1e-9)))"
+        legend: '{{client_name}}'
   http_api_performance_table:
     id: http_api_performance_table
     kind: metric

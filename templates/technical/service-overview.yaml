@@ -441,10 +441,68 @@ panels:
 
   - id: http_client_request_rate
     signal: http_client_request_rate
-    title: Outbound HTTP client
+    title: Outbound HTTP client · by status
     type: timeseries
     color: dark-blue
     fill_opacity: 25
+    width: 12
+    height: 7
+
+  - id: http_client_requests_by_target
+    signal: http_client_requests_by_target
+    title: Outbound HTTP client · by target
+    type: timeseries
+    palette: classic
+    fill_opacity: 30
+    legend_placement: right
+    legend_mode: list
+    unit: reqps
+    width: 12
+    height: 7
+
+  - id: http_client_error_rate
+    signal: http_client_error_rate
+    title: Outbound 5xx · by target · req/s
+    type: timeseries
+    palette: classic
+    fill_opacity: 30
+    legend_placement: right
+    legend_mode: list
+    unit: reqps
+    width: 8
+    height: 7
+
+  - id: http_client_error_ratio
+    signal: http_client_error_ratio
+    title: Outbound 5xx ratio · total
+    type: timeseries
+    color: dark-red
+    fill_opacity: 30
+    unit: percentunit
+    width: 8
+    height: 7
+
+  - id: http_client_latency_avg
+    signal: http_client_latency_avg
+    title: Outbound latency · avg by target · s
+    type: timeseries
+    palette: classic
+    fill_opacity: 30
+    legend_placement: right
+    legend_mode: list
+    unit: s
+    width: 8
+    height: 7
+
+  - id: http_client_latency_p95
+    signal: http_client_latency_p95
+    title: Outbound latency · p95 by target · s
+    type: timeseries
+    palette: classic
+    fill_opacity: 30
+    legend_placement: right
+    legend_mode: list
+    unit: s
     width: 24
     height: 7
 
@@ -522,7 +580,7 @@ panels:
     width: 24
     height: 2
     content: |
-      **Redis** — Filter with **Redis cmd (5b)** only. Stacked per-command rate + latency.
+      **Redis** — Filter with **Redis cmd (5b)** only. Command rate + latency + cache **hit/miss/ratio** (when Spring cache metrics are enabled).
 
   - id: redis_commands
     signal: redis_commands
@@ -549,6 +607,39 @@ panels:
     width: 12
     height: 9
 
+  - id: redis_cache_hit_rate
+    signal: redis_cache_hit_rate
+    title: Redis cache · hit rate
+    type: timeseries
+    color: dark-green
+    palette: fixed
+    fill_opacity: 35
+    unit: ops
+    width: 8
+    height: 7
+
+  - id: redis_cache_miss_rate
+    signal: redis_cache_miss_rate
+    title: Redis cache · miss rate
+    type: timeseries
+    color: dark-red
+    palette: fixed
+    fill_opacity: 35
+    unit: ops
+    width: 8
+    height: 7
+
+  - id: redis_cache_hit_ratio
+    signal: redis_cache_hit_ratio
+    title: Redis cache · hit ratio
+    type: timeseries
+    color: dark-blue
+    palette: fixed
+    fill_opacity: 35
+    unit: percentunit
+    width: 8
+    height: 7
+
   - id: row_kafka
     type: row
     title: "5c · Kafka"
@@ -560,7 +651,7 @@ panels:
     width: 24
     height: 2
     content: |
-      **Kafka** — **Kafka listener (5c)** for rate/errors/latency · **Kafka topic (5c)** for lag only.
+      **Kafka** — **Kafka listener (5c)** for rate/errors/latency, plus **topic usage** (consume/produce rate) and topic lag.
 
   - id: kafka_listener
     signal: kafka_listener
@@ -611,6 +702,32 @@ panels:
     legend_mode: list
     width: 12
     height: 9
+
+  - id: kafka_consume_by_topic
+    signal: kafka_consume_by_topic
+    title: Kafka · consume by topic
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 60
+    legend_placement: right
+    legend_mode: list
+    unit: ops
+    width: 12
+    height: 8
+
+  - id: kafka_produce_by_topic
+    signal: kafka_produce_by_topic
+    title: Kafka · produce by topic
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 60
+    legend_placement: right
+    legend_mode: list
+    unit: ops
+    width: 12
+    height: 8
 
   - id: row_hikari
     type: row

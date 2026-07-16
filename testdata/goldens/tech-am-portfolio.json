@@ -3452,7 +3452,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 24,
+        "w": 12,
         "x": 0,
         "y": 114
       },
@@ -3486,7 +3486,443 @@
           "refId": "A"
         }
       ],
-      "title": "Outbound HTTP client",
+      "title": "Outbound HTTP client · by status",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 30.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "reqps",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 114
+      },
+      "id": 47,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "topk(15, sum by (client_name) (rate(http_client_requests_seconds_count{application=\"$application\"}[5m])))",
+          "legendFormat": "{{client_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound HTTP client · by target",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 30.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "reqps",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 121
+      },
+      "id": 48,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "topk(15, sum by (client_name) (rate(http_client_requests_seconds_count{application=\"$application\",status=~\"5..\"}[5m])))",
+          "legendFormat": "{{client_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound 5xx · by target · req/s",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F2495C"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 30.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "percentunit",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 121
+      },
+      "id": 49,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(sum(rate(http_client_requests_seconds_count{application=\"$application\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_client_requests_seconds_count{application=\"$application\"}[5m])), 1e-9)) or vector(0)",
+          "legendFormat": "outbound 5xx ratio",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound 5xx ratio · total",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 30.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "s",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 121
+      },
+      "id": 50,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "topk(15, sum by (client_name) (rate(http_client_requests_seconds_sum{application=\"$application\"}[5m])) / clamp_min(sum by (client_name) (rate(http_client_requests_seconds_count{application=\"$application\"}[5m])), 1e-9))",
+          "legendFormat": "{{client_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound latency · avg by target · s",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "barAlignment": 0,
+            "lineWidth": 2,
+            "fillOpacity": 30.0,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "pointSize": 5,
+            "spanNulls": true,
+            "axisBorderShow": false,
+            "axisSoftMin": 0,
+            "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "unit": "s",
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 128
+      },
+      "id": 51,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "width": 180
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(topk(15, histogram_quantile(0.95, sum by (client_name, le) (rate(http_client_requests_seconds_bucket{application=\"$application\"}[5m])))) or topk(15, sum by (client_name) (rate(http_client_requests_seconds_sum{application=\"$application\"}[5m])) / clamp_min(sum by (client_name) (rate(http_client_requests_seconds_count{application=\"$application\"}[5m])), 1e-9)))",
+          "legendFormat": "{{client_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Outbound latency · p95 by target · s",
       "transparent": true,
       "type": "timeseries"
     },
@@ -3496,9 +3932,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 121
+        "y": 135
       },
-      "id": 47,
+      "id": 52,
       "panels": [],
       "title": "5a · MongoDB",
       "type": "row"
@@ -3508,9 +3944,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 122
+        "y": 136
       },
-      "id": 48,
+      "id": 53,
       "options": {
         "code": {
           "language": "markdown",
@@ -3575,9 +4011,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 124
+        "y": 138
       },
-      "id": 49,
+      "id": 54,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3662,9 +4098,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 124
+        "y": 138
       },
-      "id": 50,
+      "id": 55,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3750,9 +4186,9 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 133
+        "y": 147
       },
-      "id": 51,
+      "id": 56,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3838,9 +4274,9 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 133
+        "y": 147
       },
-      "id": 52,
+      "id": 57,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3880,9 +4316,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 140
+        "y": 154
       },
-      "id": 53,
+      "id": 58,
       "panels": [],
       "title": "5b · Redis",
       "type": "row"
@@ -3892,9 +4328,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 141
+        "y": 155
       },
-      "id": 54,
+      "id": 59,
       "options": {
         "code": {
           "language": "markdown",
@@ -3959,9 +4395,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 143
+        "y": 157
       },
-      "id": 55,
+      "id": 60,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4046,9 +4482,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 143
+        "y": 157
       },
-      "id": 56,
+      "id": 61,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4088,9 +4524,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 152
+        "y": 166
       },
-      "id": 57,
+      "id": 62,
       "panels": [],
       "title": "5c · Kafka",
       "type": "row"
@@ -4100,9 +4536,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 153
+        "y": 167
       },
-      "id": 58,
+      "id": 63,
       "options": {
         "code": {
           "language": "markdown",
@@ -4167,9 +4603,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 155
+        "y": 169
       },
-      "id": 59,
+      "id": 64,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4254,9 +4690,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 155
+        "y": 169
       },
-      "id": 60,
+      "id": 65,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4341,9 +4777,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 164
+        "y": 178
       },
-      "id": 61,
+      "id": 66,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4428,9 +4864,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 164
+        "y": 178
       },
-      "id": 62,
+      "id": 67,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4470,9 +4906,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 187
       },
-      "id": 63,
+      "id": 68,
       "panels": [],
       "title": "5d · SQL / HikariCP",
       "type": "row"
@@ -4482,9 +4918,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 174
+        "y": 188
       },
-      "id": 64,
+      "id": 69,
       "options": {
         "code": {
           "language": "markdown",
@@ -4549,9 +4985,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 176
+        "y": 190
       },
-      "id": 65,
+      "id": 70,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4636,9 +5072,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 176
+        "y": 190
       },
-      "id": 66,
+      "id": 71,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4723,9 +5159,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 184
+        "y": 198
       },
-      "id": 67,
+      "id": 72,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4811,9 +5247,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 184
+        "y": 198
       },
-      "id": 68,
+      "id": 73,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4853,9 +5289,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 192
+        "y": 206
       },
-      "id": 69,
+      "id": 74,
       "panels": [],
       "title": "6 · JVM / process",
       "type": "row"
@@ -4865,9 +5301,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 193
+        "y": 207
       },
-      "id": 70,
+      "id": 75,
       "options": {
         "code": {
           "language": "markdown",
@@ -4932,9 +5368,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 195
+        "y": 209
       },
-      "id": 71,
+      "id": 76,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5020,9 +5456,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 195
+        "y": 209
       },
-      "id": 72,
+      "id": 77,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5108,9 +5544,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 195
+        "y": 209
       },
-      "id": 73,
+      "id": 78,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5195,9 +5631,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 202
+        "y": 216
       },
-      "id": 74,
+      "id": 79,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5283,9 +5719,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 202
+        "y": 216
       },
-      "id": 75,
+      "id": 80,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5371,9 +5807,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 202
+        "y": 216
       },
-      "id": 76,
+      "id": 81,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5459,9 +5895,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 209
+        "y": 223
       },
-      "id": 77,
+      "id": 82,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5547,9 +5983,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 209
+        "y": 223
       },
-      "id": 78,
+      "id": 83,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5634,9 +6070,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 209
+        "y": 223
       },
-      "id": 79,
+      "id": 84,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5676,9 +6112,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 216
+        "y": 230
       },
-      "id": 80,
+      "id": 85,
       "panels": [],
       "title": "7 · Kubernetes pressure",
       "type": "row"
@@ -5688,9 +6124,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 217
+        "y": 231
       },
-      "id": 81,
+      "id": 86,
       "options": {
         "code": {
           "language": "markdown",
@@ -5756,9 +6192,9 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 219
+        "y": 233
       },
-      "id": 82,
+      "id": 87,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5844,9 +6280,9 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 219
+        "y": 233
       },
-      "id": 83,
+      "id": 88,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5886,9 +6322,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 226
+        "y": 240
       },
-      "id": 84,
+      "id": 89,
       "panels": [],
       "title": "8 · Evidence — traces & logs",
       "type": "row"
@@ -5898,9 +6334,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 227
+        "y": 241
       },
-      "id": 85,
+      "id": 90,
       "options": {
         "code": {
           "language": "markdown",
@@ -5919,9 +6355,9 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 229
+        "y": 243
       },
-      "id": 86,
+      "id": 91,
       "options": {
         "code": {
           "language": "markdown",
@@ -5943,9 +6379,9 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 232
+        "y": 246
       },
-      "id": 87,
+      "id": 92,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
@@ -5980,9 +6416,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 241
+        "y": 255
       },
-      "id": 88,
+      "id": 93,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
