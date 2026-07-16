@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from am_obs.loader import Context
+from am_obs.manifest import resolve_manifest_signals
 from am_obs.paths import env_from_namespace
 
 
@@ -223,7 +224,8 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
     app = manifest["k8s_app_label"]
     application = manifest.get("metrics_application") or service
     env = env_from_namespace(namespace)
-    uses = set((manifest.get("signals") or {}).get("uses") or [])
+    resolved = resolve_manifest_signals(manifest, ctx)
+    uses = set(resolved.technical)
 
     panels_out = _panel_candidates(
         ctx, template=ctx.technical_template, uses=uses, warnings=warnings
@@ -311,6 +313,7 @@ def compose_shared_functional(
     ctx: Context,
     *,
     default: dict[str, str] | None = None,
+    uses: set[str] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """One Functional / Services product dashboard (Service dropdown)."""
     warnings: list[str] = []
@@ -321,9 +324,7 @@ def compose_shared_functional(
     namespace = default["namespace"]
     env = env_from_namespace(namespace)
 
-    panels_out = _panel_candidates(
-        ctx, template=ctx.functional_template, uses=None, warnings=warnings
-    )
+    panels_out = _panel_candidates(ctx, template=ctx.functional_template, uses=uses, warnings=warnings)
 
     ir = {
         "apiVersion": "am.obs/v1",

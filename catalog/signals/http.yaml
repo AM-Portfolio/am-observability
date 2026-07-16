@@ -1,0 +1,422 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: http
+dashboard: technical
+signals:
+  http_request_rate:
+    id: http_request_rate
+    kind: metric
+    description: Total HTTP request rate (sum of all matching method/uri filters).
+      Unit = requests/sec.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
+        legend: total (sum)
+  http_requests_by_status:
+    id: http_requests_by_status
+    kind: metric
+    description: HTTP request rate by status code (one line per status). Unit = requests/sec.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum by (status) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
+        legend: '{{status}}'
+  http_requests_2xx:
+    id: http_requests_2xx
+    kind: metric
+    description: "Successful 2xx rate \u2014 one line per API (method+uri). Unit =\
+      \ requests/sec."
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"2.."}[5m])))
+        legend: '{{method}} {{uri}}'
+  http_requests_4xx:
+    id: http_requests_4xx
+    kind: metric
+    description: "Client 4xx rate \u2014 one line per API. Unit = requests/sec."
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"4.."}[5m])))
+        legend: '{{method}} {{uri}}'
+  http_error_rate:
+    id: http_error_rate
+    kind: metric
+    description: "Server 5xx rate \u2014 one line per API. Unit = requests/sec."
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[5m])))
+        legend: '{{method}} {{uri}}'
+  http_error_rate_total:
+    id: http_error_rate_total
+    kind: metric
+    description: Total 5xx rate (sum of matching APIs). Unit = requests/sec.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[5m]))
+        legend: 5xx total (sum)
+  http_latency_p50:
+    id: http_latency_p50
+    kind: metric
+    description: HTTP request latency p50 (filtered by method/uri)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])) by (le))\n) or (\n  sum(rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m]))\n  /\n  clamp_min(sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])), 1e-9)\n)"
+        legend: p50 / avg
+  http_latency_p75:
+    id: http_latency_p75
+    kind: metric
+    description: HTTP request latency p75 (filtered by method/uri)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  histogram_quantile(0.75, sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])) by (le))\n) or (\n  sum(rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m]))\n  /\n  clamp_min(sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])), 1e-9)\n)"
+        legend: p75 / avg
+  http_latency_p95:
+    id: http_latency_p95
+    kind: metric
+    description: HTTP p95 latency, or avg when histogram buckets missing. Unit = seconds.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])) by (le))\n) or (\n  sum(rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m]))\n  /\n  clamp_min(sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])), 1e-9)\n)"
+        legend: p95 / avg
+  http_latency_avg:
+    id: http_latency_avg
+    kind: metric
+    description: "HTTP average latency (sum/count). Shows 20\u201330s slow calls when\
+      \ p95 buckets are empty."
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(rate(http_server_requests_seconds_sum{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
+          / clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])),
+          1e-9)
+        legend: avg
+  http_latency_avg_by_uri:
+    id: http_latency_avg_by_uri
+    kind: metric
+    description: Avg latency per API (method+uri). Primary signal for slow endpoints.
+      Unit = seconds.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "topk(\n  15,\n  sum by (method, uri) (\n    rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n  )\n  /\n  clamp_min(\n    sum by (method,\
+          \ uri) (\n      rate(http_server_requests_seconds_count{application=\"$application\"\
+          ,namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\",uri!~\".*actuator.*\"\
+          }[5m])\n    ),\n    1e-9\n  )\n)"
+        legend: '{{method}} {{uri}}'
+  http_latency_p95_by_uri:
+    id: http_latency_p95_by_uri
+    kind: metric
+    description: HTTP p95 per API, or avg per API when buckets missing. Unit = seconds.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "topk(\n  15,\n  (\n    histogram_quantile(\n      0.95,\n\
+          \      sum by (method, uri, le) (\n        rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n      )\n    )\n  )\n  or\n  (\n    sum by\
+          \ (method, uri) (\n      rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n    )\n    /\n    clamp_min(\n      sum by\
+          \ (method, uri) (\n        rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n      ),\n      1e-9\n    )\n  )\n)"
+        legend: '{{method}} {{uri}}'
+  http_latency_worst_avg:
+    id: http_latency_worst_avg
+    kind: metric
+    description: Worst avg latency among APIs (seconds). Red when ge 5s.
+    panel_type: bargauge
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "max(\n  sum by (method, uri) (\n    rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n  )\n  /\n  clamp_min(\n    sum by (method,\
+          \ uri) (\n      rate(http_server_requests_seconds_count{application=\"$application\"\
+          ,namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\",uri!~\".*actuator.*\"\
+          }[5m])\n    ),\n    1e-9\n  )\n) or vector(0)"
+        legend: worst avg
+  http_latency_slow_api_count:
+    id: http_latency_slow_api_count
+    kind: metric
+    description: Count of APIs whose avg latency is ge 5 seconds
+    panel_type: bargauge
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "count(\n  (\n    sum by (method, uri) (\n      rate(http_server_requests_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n    )\n    /\n    clamp_min(\n      sum by\
+          \ (method, uri) (\n        rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n      ),\n      1e-9\n    )\n  ) > 5\n) or\
+          \ vector(0)"
+        legend: "APIs \u22655s"
+  http_slo_under_1s:
+    id: http_slo_under_1s
+    kind: metric
+    description: Fraction of requests completing under ~1s (histogram bucket). Empty
+      if no buckets.
+    panel_type: bargauge
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  (\n    sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\",le=\"1.0\"}[5m]))\n    or sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\",le=\"1\"}[5m]))\n  )\n  /\n  clamp_min(sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])), 1e-9)\n) or vector(0)"
+        legend: under 1s
+  http_slo_under_5s:
+    id: http_slo_under_5s
+    kind: metric
+    description: Fraction of requests completing under ~5s (histogram bucket). Empty
+      if no buckets.
+    panel_type: bargauge
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  (\n    sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\",le=\"5.0\"}[5m]))\n    or sum(rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\",le=\"5\"}[5m]))\n  )\n  /\n  clamp_min(sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])), 1e-9)\n) or vector(0)"
+        legend: under 5s
+  http_latency_heatmap:
+    id: http_latency_heatmap
+    kind: metric
+    description: HTTP latency density from histogram buckets (heatmap).
+    panel_type: heatmap
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum by (le) (\n  rate(http_server_requests_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])\n)"
+        legend: '{{le}}'
+  http_success_ratio:
+    id: http_success_ratio
+    kind: metric
+    description: Fraction of requests with 2xx status
+    panel_type: bargauge
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\",status=~\"2..\"}[5m]))\n  /\n  clamp_min(sum(rate(http_server_requests_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+          ,uri!~\".*actuator.*\"}[5m])), 1e-9)\n) or vector(0)"
+        legend: 2xx success
+  http_requests_by_uri:
+    id: http_requests_by_uri
+    kind: metric
+    description: "Request rate \u2014 one line per API (method+uri). Unit = requests/sec."
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])))
+        legend: '{{method}} {{uri}}'
+  http_requests_by_outcome:
+    id: http_requests_by_outcome
+    kind: metric
+    description: HTTP rate by Micrometer outcome (one line per outcome). Unit = requests/sec.
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum by (outcome) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
+        legend: '{{outcome}}'
+  http_client_request_rate:
+    id: http_client_request_rate
+    kind: metric
+    description: Outbound HTTP client call rate (WebClient/RestTemplate)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum by (client_name, uri, status) (rate(http_client_requests_seconds_count{application="$application"}[5m]))
+        legend: '{{client_name}} {{status}}'
+  http_api_performance_table:
+    id: http_api_performance_table
+    kind: metric
+    description: 'Per-API table (method+uri): status aggregates + avg/p50/p75/p90/p95
+      latency'
+    panel_type: table
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        queries:
+        - refId: Total
+          legend: Total
+          expr_template: "sum by (api) (\n  label_join(\n    sum by (method, uri)\
+            \ (\n      increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n    ),\n    \"api\", \" \", \"method\"\
+            , \"uri\"\n  )\n)"
+        - refId: S2xx
+          legend: 2xx
+          expr_template: "(\n  sum by (api) (\n    label_join(\n      sum by (method,\
+            \ uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\",status=~\"2..\"}[$__range])\n      ),\n      \"\
+            api\", \" \", \"method\", \"uri\"\n    )\n  )\n) or (\n  sum by (api)\
+            \ (\n    label_join(\n      sum by (method, uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ) * 0\n)"
+        - refId: S4xx
+          legend: 4xx
+          expr_template: "(\n  sum by (api) (\n    label_join(\n      sum by (method,\
+            \ uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\",status=~\"4..\"}[$__range])\n      ),\n      \"\
+            api\", \" \", \"method\", \"uri\"\n    )\n  )\n) or (\n  sum by (api)\
+            \ (\n    label_join(\n      sum by (method, uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ) * 0\n)"
+        - refId: S5xx
+          legend: 5xx
+          expr_template: "(\n  sum by (api) (\n    label_join(\n      sum by (method,\
+            \ uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\",status=~\"5..\"}[$__range])\n      ),\n      \"\
+            api\", \" \", \"method\", \"uri\"\n    )\n  )\n) or (\n  sum by (api)\
+            \ (\n    label_join(\n      sum by (method, uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ) * 0\n)"
+        - refId: Fail
+          legend: Fail
+          expr_template: "(\n  sum by (api) (\n    label_join(\n      sum by (method,\
+            \ uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\",status=~\"[45]..\"}[$__range])\n      ),\n    \
+            \  \"api\", \" \", \"method\", \"uri\"\n    )\n  )\n) or (\n  sum by (api)\
+            \ (\n    label_join(\n      sum by (method, uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ) * 0\n)"
+        - refId: Avg
+          legend: avg
+          expr_template: "sum by (api) (\n  label_join(\n    sum by (method, uri)\
+            \ (\n      increase(http_server_requests_seconds_sum{application=\"$application\"\
+            ,namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\",uri!~\".*actuator.*\"\
+            }[$__range])\n    ),\n    \"api\", \" \", \"method\", \"uri\"\n  )\n)\
+            \ / clamp_min(\n  sum by (api) (\n    label_join(\n      sum by (method,\
+            \ uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ),\n  1\n)"
+        - refId: P50
+          legend: p50
+          expr_template: "histogram_quantile(\n  0.50,\n  sum by (api, le) (\n   \
+            \ label_join(\n      sum by (method, uri, le) (\n        rate(http_server_requests_seconds_bucket{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  )\n)"
+        - refId: P75
+          legend: p75
+          expr_template: "histogram_quantile(\n  0.75,\n  sum by (api, le) (\n   \
+            \ label_join(\n      sum by (method, uri, le) (\n        rate(http_server_requests_seconds_bucket{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  )\n)"
+        - refId: P90
+          legend: p90
+          expr_template: "histogram_quantile(\n  0.90,\n  sum by (api, le) (\n   \
+            \ label_join(\n      sum by (method, uri, le) (\n        rate(http_server_requests_seconds_bucket{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  )\n)"
+        - refId: P95
+          legend: p95
+          expr_template: "histogram_quantile(\n  0.95,\n  sum by (api, le) (\n   \
+            \ label_join(\n      sum by (method, uri, le) (\n        rate(http_server_requests_seconds_bucket{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  )\n)"
+  http_error_ratio:
+    id: http_error_ratio
+    kind: metric
+    description: HTTP 5xx error ratio (of requests matching method/uri filter)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[5m]))
+          / clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])),
+          1e-9)

@@ -26,15 +26,8 @@ k8s_app_label: am-example
 namespace: am-apps-preprod
 owners: [your-team]
 signals:
-  uses:
-    - k8s_cpu_usage
-    - k8s_memory_usage
-    - k8s_restarts
-    - service_logs_all
-    - service_error_logs
-    - service_health_up
-    # Tier A also: http_*, jvm_*, trace_latency_p95
-functional: []
+  bundle: tier-b-python   # Tier A example: tier-a-java-core
+  domain: []              # Optional domain KPIs (e.g. portfolio_*)
 ```
 
 - [ ] CODEOWNERS covers this file for the service team
@@ -66,7 +59,7 @@ functional: []
 ### 4. Optional follow-ups
 
 - [ ] Add `prometheus.io/scrape` annotations if Tier A metrics missing
-- [ ] Add real `functional` KPIs only when metrics exist
+- [ ] Add real `signals.domain` KPIs only when metrics exist
 - [ ] Set `enabled: false` in registry to pause without deleting manifest
 
 ## Wave guidance

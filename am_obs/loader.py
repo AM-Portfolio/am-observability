@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from am_obs.catalog import load_signal_bundles, load_signal_catalog, load_signal_modules
 from am_obs.paths import ROOT, load_yaml
 
 
@@ -13,6 +14,8 @@ from am_obs.paths import ROOT, load_yaml
 class Context:
     root: Path = ROOT
     catalog: dict[str, Any] = field(default_factory=dict)
+    signal_modules: dict[str, Any] = field(default_factory=dict)
+    signal_bundles: dict[str, Any] = field(default_factory=dict)
     labels: dict[str, Any] = field(default_factory=dict)
     capabilities: dict[str, Any] = field(default_factory=dict)
     bindings: dict[str, Any] = field(default_factory=dict)
@@ -35,7 +38,9 @@ def load_context(
     binding = binding or (root / "bindings" / "platform.yaml")
     return Context(
         root=root,
-        catalog=load_yaml(root / "catalog" / "signals.yaml") or {},
+        catalog=load_signal_catalog(root) or {},
+        signal_modules=load_signal_modules(root),
+        signal_bundles=load_signal_bundles(root),
         labels=load_yaml(root / "catalog" / "labels.yaml") or {},
         capabilities=load_yaml(root / "adapters" / "capabilities.yaml") or {},
         bindings=load_yaml(binding) or {},

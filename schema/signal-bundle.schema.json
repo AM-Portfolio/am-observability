@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/signal-bundle.schema.json",
+  "title": "SignalBundle",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "includes"],
+  "properties": {
+    "apiVersion": { "type": "string", "const": "am.obs/v1" },
+    "kind": { "type": "string", "const": "SignalBundle" },
+    "id": { "type": "string", "minLength": 1 },
+    "tier": { "type": "string", "enum": ["A", "B"] },
+    "runtime": { "type": "string", "enum": ["java", "python"] },
+    "includes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "additionalProperties": true
+}

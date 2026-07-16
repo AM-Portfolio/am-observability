@@ -1,0 +1,183 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: platform-exporters
+dashboard: platform
+signals:
+  infra_redis_up:
+    id: infra_redis_up
+    kind: metric
+    description: Redis exporter scrape up (infra redis)
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "max(redis_up{namespace=\"$namespace\",pod=~\"$pod\"})\n  or\
+          \ max(up{namespace=\"$namespace\",pod=~\"$pod\",job=\"kubernetes-pods\"\
+          })"
+  infra_redis_clients:
+    id: infra_redis_clients
+    kind: metric
+    description: Redis connected clients
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: clients
+        expr_template: redis_connected_clients{namespace="$namespace",pod=~"$pod"}
+  infra_redis_memory:
+    id: infra_redis_memory
+    kind: metric
+    description: Redis used memory
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: used
+        expr_template: redis_memory_used_bytes{namespace="$namespace",pod=~"$pod"}
+  infra_redis_commands:
+    id: infra_redis_commands
+    kind: metric
+    description: Redis commands processed rate
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: commands/s
+        expr_template: rate(redis_commands_processed_total{namespace="$namespace",pod=~"$pod"}[5m])
+  infra_redis_hit_ratio:
+    id: infra_redis_hit_ratio
+    kind: metric
+    description: Redis keyspace hit ratio
+    panel_type: gauge
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "sum(rate(redis_keyspace_hits_total{namespace=\"$namespace\"\
+          ,pod=~\"$pod\"}[5m])) / clamp_min(\n  sum(rate(redis_keyspace_hits_total{namespace=\"\
+          $namespace\",pod=~\"$pod\"}[5m]))\n  + sum(rate(redis_keyspace_misses_total{namespace=\"\
+          $namespace\",pod=~\"$pod\"}[5m])),\n  1e-9\n)"
+  infra_redis_blocked:
+    id: infra_redis_blocked
+    kind: metric
+    description: Redis blocked clients
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: blocked
+        expr_template: redis_blocked_clients{namespace="$namespace",pod=~"$pod"}
+  infra_mongo_up:
+    id: infra_mongo_up
+    kind: metric
+    description: MongoDB exporter scrape up
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "max(mongodb_up{namespace=\"$namespace\",pod=~\"$pod\"})\n\
+          \  or max(up{namespace=\"$namespace\",pod=~\"$pod\",job=\"kubernetes-pods\"\
+          })"
+  infra_mongo_connections:
+    id: infra_mongo_connections
+    kind: metric
+    description: MongoDB current connections
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: current
+        expr_template: "mongodb_connections{namespace=\"$namespace\",pod=~\"$pod\"\
+          ,state=\"current\"}\n  or mongodb_ss_connections{namespace=\"$namespace\"\
+          ,pod=~\"$pod\",conn_type=\"current\"}"
+  infra_mongo_ops:
+    id: infra_mongo_ops
+    kind: metric
+    description: MongoDB operations rate
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{type}}'
+        expr_template: "sum by (type) (\n  rate(mongodb_op_counters_total{namespace=\"\
+          $namespace\",pod=~\"$pod\"}[5m])\n)\n  or sum by (type) (\n    rate(mongodb_ss_opcounters{namespace=\"\
+          $namespace\",pod=~\"$pod\"}[5m])\n  )"
+  infra_mongo_memory:
+    id: infra_mongo_memory
+    kind: metric
+    description: MongoDB resident memory
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: resident
+        expr_template: "mongodb_memory{namespace=\"$namespace\",pod=~\"$pod\",type=\"\
+          resident\"}\n  or mongodb_ss_mem_resident{namespace=\"$namespace\",pod=~\"\
+          $pod\"}"
+  infra_postgres_up:
+    id: infra_postgres_up
+    kind: metric
+    description: Postgres exporter scrape up
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "max(pg_up{namespace=\"$namespace\",pod=~\"$pod\"})\n  or max(up{namespace=\"\
+          $namespace\",pod=~\"$pod\",job=\"kubernetes-pods\"})"
+  infra_postgres_connections:
+    id: infra_postgres_connections
+    kind: metric
+    description: Postgres active connections
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{datname}}'
+        expr_template: "sum by (datname) (\n  pg_stat_activity_count{namespace=\"\
+          $namespace\",pod=~\"$pod\",state=\"active\"}\n)"
+  infra_postgres_txns:
+    id: infra_postgres_txns
+    kind: metric
+    description: Postgres transaction commit/rollback rate
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{datname}} commits'
+        expr_template: sum by (datname) (rate(pg_stat_database_xact_commit{namespace="$namespace",pod=~"$pod",datname!=""}[5m]))
+  infra_postgres_cache_hit:
+    id: infra_postgres_cache_hit
+    kind: metric
+    description: Postgres buffer cache hit ratio
+    panel_type: gauge
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "sum(rate(pg_stat_database_blks_hit{namespace=\"$namespace\"\
+          ,pod=~\"$pod\",datname!=\"\"}[5m])) / clamp_min(\n  sum(rate(pg_stat_database_blks_hit{namespace=\"\
+          $namespace\",pod=~\"$pod\",datname!=\"\"}[5m]))\n  + sum(rate(pg_stat_database_blks_read{namespace=\"\
+          $namespace\",pod=~\"$pod\",datname!=\"\"}[5m])),\n  1e-9\n)"
+  infra_postgres_deadlocks:
+    id: infra_postgres_deadlocks
+    kind: metric
+    description: Postgres deadlock rate
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: deadlocks/s
+        expr_template: sum(rate(pg_stat_database_deadlocks{namespace="$namespace",pod=~"$pod",datname!=""}[5m]))

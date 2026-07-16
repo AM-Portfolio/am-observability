@@ -1,0 +1,135 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: jvm
+dashboard: technical
+signals:
+  jvm_heap_used:
+    id: jvm_heap_used
+    kind: metric
+    description: JVM heap used bytes
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: jvm_memory_used_bytes{application="$application",area="heap"}
+        legend: '{{id}}'
+  jvm_heap_max:
+    id: jvm_heap_max
+    kind: metric
+    description: JVM heap max bytes
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: jvm_memory_max_bytes{application="$application",area="heap"}
+  jvm_nonheap_used:
+    id: jvm_nonheap_used
+    kind: metric
+    description: JVM non-heap used bytes (metaspace etc.)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: jvm_memory_used_bytes{application="$application",area="nonheap"}
+  jvm_gc_pause:
+    id: jvm_gc_pause
+    kind: metric
+    description: JVM GC pause rate
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: rate(jvm_gc_pause_seconds_sum{application="$application"}[5m])
+        legend: '{{action}}'
+  jvm_threads_live:
+    id: jvm_threads_live
+    kind: metric
+    description: Live JVM threads (thread leak signal)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: jvm_threads_live_threads{application="$application"}
+  jvm_heap_used_ratio:
+    id: jvm_heap_used_ratio
+    kind: metric
+    description: JVM heap used / max ratio (0-1) for saturation gauge
+    panel_type: gauge
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(jvm_memory_used_bytes{application="$application",area="heap"})
+          / clamp_min(sum(jvm_memory_max_bytes{application="$application",area="heap"}),
+          1)
+  process_uptime:
+    id: process_uptime
+    kind: metric
+    description: Process uptime seconds
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: max(time() - process_start_time_seconds{application="$application",namespace="$namespace"})
+  process_cpu_usage:
+    id: process_cpu_usage
+    kind: metric
+    description: Process CPU usage ratio (0-1)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: process_cpu_usage{application="$application"}
+  process_files_open:
+    id: process_files_open
+    kind: metric
+    description: Open file descriptors
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: process_files_open_files{application="$application"}
+        legend: open FDs
+  system_cpu_usage:
+    id: system_cpu_usage
+    kind: metric
+    description: System CPU usage ratio (0-1)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: system_cpu_usage{application="$application"}
+        legend: system CPU
+  logback_events:
+    id: logback_events
+    kind: metric
+    description: Logback event rate by level (error/warn/info)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum by (level) (rate(logback_events_total{application="$application"}[5m]))
+        legend: '{{level}}'
+  tomcat_threads_busy:
+    id: tomcat_threads_busy
+    kind: metric
+    description: Busy Tomcat request threads (saturation)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: tomcat_threads_busy_threads{application="$application"}

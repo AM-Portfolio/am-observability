@@ -1,0 +1,11 @@
+apiVersion: am.obs/v1
+kind: SignalBundle
+id: tier-a-java-core
+tier: A
+runtime: java
+includes:
+- kubernetes
+- http
+- client-deps
+- jvm
+- logs-traces

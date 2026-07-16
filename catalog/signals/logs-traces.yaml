@@ -1,0 +1,36 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: logs-traces
+dashboard: technical
+signals:
+  service_logs_all:
+    id: service_logs_all
+    kind: log
+    description: All service logs for namespace+pod prefix
+    panel_type: logs
+    adapters:
+    - loki
+    adapter_map:
+      loki:
+        expr_template: '{namespace="$namespace",pod=~"$app.*"}'
+  service_error_logs:
+    id: service_error_logs
+    kind: log
+    description: Error-level service logs
+    panel_type: logs
+    adapters:
+    - loki
+    adapter_map:
+      loki:
+        expr_template: '{namespace="$namespace",pod=~"$app.*"} |~ "(?i)error|exception|fatal|failed"'
+  trace_latency_p95:
+    id: trace_latency_p95
+    kind: trace
+    description: Tempo explore link for service latency
+    panel_type: link
+    adapters:
+    - tempo
+    adapter_map:
+      tempo:
+        link_template: /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$service}","queryType":"traceql"}]
+        search: service.name="$service"

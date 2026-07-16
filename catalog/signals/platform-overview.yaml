@@ -1,0 +1,80 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: platform-overview
+dashboard: platform
+signals:
+  platform_ns_pod_count:
+    id: platform_ns_pod_count
+    kind: metric
+    description: Running pod count in selected platform namespace (cAdvisor)
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "count(\n  count by (pod) (\n    container_memory_working_set_bytes{namespace=\"\
+          $namespace\",container!=\"\",container!=\"POD\"}\n  )\n)"
+  platform_ns_cpu:
+    id: platform_ns_cpu
+    kind: metric
+    description: CPU usage by pod in platform namespace
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{pod}}'
+        expr_template: "sum by (pod) (\n  rate(container_cpu_usage_seconds_total{namespace=\"\
+          $namespace\",container!=\"\",container!=\"POD\"}[5m])\n)"
+  platform_ns_memory:
+    id: platform_ns_memory
+    kind: metric
+    description: Memory working set by pod in platform namespace
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{pod}}'
+        expr_template: "sum by (pod) (\n  container_memory_working_set_bytes{namespace=\"\
+          $namespace\",container!=\"\",container!=\"POD\"}\n)"
+  platform_ns_cpu_total:
+    id: platform_ns_cpu_total
+    kind: metric
+    description: Total CPU cores used in platform namespace
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",container!="",container!="POD"}[5m]))
+  platform_ns_memory_total:
+    id: platform_ns_memory_total
+    kind: metric
+    description: Total memory working set in platform namespace
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: sum(container_memory_working_set_bytes{namespace="$namespace",container!="",container!="POD"})
+  platform_ns_logs:
+    id: platform_ns_logs
+    kind: log
+    description: All logs for selected platform namespace
+    panel_type: logs
+    adapters:
+    - loki
+    adapter_map:
+      loki:
+        expr_template: '{namespace="$namespace"}'
+  platform_ns_error_logs:
+    id: platform_ns_error_logs
+    kind: log
+    description: Error-level logs for platform namespace
+    panel_type: logs
+    adapters:
+    - loki
+    adapter_map:
+      loki:
+        expr_template: '{namespace="$namespace"} |~ "(?i)error|exception|fatal|failed|panic"'

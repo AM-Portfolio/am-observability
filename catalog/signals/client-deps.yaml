@@ -1,0 +1,202 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: client-deps
+dashboard: technical
+signals:
+  mongo_commands:
+    id: mongo_commands
+    kind: metric
+    description: "MongoDB driver command rate (filter mongo_command \xB7 5a only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (command) (rate(mongodb_driver_commands_seconds_count{application="$application",namespace="$namespace",command=~"$mongo_command"}[5m])))
+        legend: '{{command}}'
+  mongo_pool_checkedout:
+    id: mongo_pool_checkedout
+    kind: metric
+    description: MongoDB connection pool checked-out connections
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum(mongodb_driver_pool_checkedout{application="$application",namespace="$namespace"})
+        legend: checked-out
+  mongo_commands_p95:
+    id: mongo_commands_p95
+    kind: metric
+    description: MongoDB command latency (p95 histogram, else avg from sum/count)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  histogram_quantile(\n    0.95,\n    sum by (command,\
+          \ le) (\n      rate(mongodb_driver_commands_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",command=~\"$mongo_command\"}[5m])\n\
+          \    )\n  )\n) or (\n  sum by (command) (\n    rate(mongodb_driver_commands_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",command=~\"$mongo_command\"}[5m])\n\
+          \  )\n  /\n  clamp_min(\n    sum by (command) (\n      rate(mongodb_driver_commands_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",command=~\"$mongo_command\"}[5m])\n\
+          \    ),\n    1e-9\n  )\n)"
+        legend: '{{command}}'
+  mongo_pool_size:
+    id: mongo_pool_size
+    kind: metric
+    description: MongoDB connection pool size
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum(mongodb_driver_pool_size{application="$application",namespace="$namespace"})
+        legend: pool size
+  redis_commands:
+    id: redis_commands
+    kind: metric
+    description: "Redis/Lettuce command rate by command (filter redis_command \xB7\
+      \ 5b only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (command) (rate(lettuce_command_completion_seconds_count{application="$application",namespace="$namespace",command=~"$redis_command"}[5m])))
+        legend: '{{command}}'
+  redis_commands_p95:
+    id: redis_commands_p95
+    kind: metric
+    description: Redis command latency (p95 or avg fallback)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  histogram_quantile(\n    0.95,\n    sum by (command,\
+          \ le) (\n      rate(lettuce_command_completion_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\",command=~\"$redis_command\"}[5m])\n\
+          \    )\n  )\n) or (\n  sum by (command) (\n    rate(lettuce_command_completion_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",command=~\"$redis_command\"}[5m])\n\
+          \  )\n  /\n  clamp_min(\n    sum by (command) (\n      rate(lettuce_command_completion_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",command=~\"$redis_command\"}[5m])\n\
+          \    ),\n    1e-9\n  )\n)"
+        legend: '{{command}}'
+  kafka_listener:
+    id: kafka_listener
+    kind: metric
+    description: "Spring Kafka listener invoke rate (filter kafka_listener \xB7 5c\
+      \ only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (name) (rate(spring_kafka_listener_seconds_count{application="$application",namespace="$namespace",name=~"$kafka_listener"}[5m])))
+        legend: '{{name}}'
+  kafka_listener_errors:
+    id: kafka_listener_errors
+    kind: metric
+    description: "Spring Kafka listener error rate (filter kafka_listener \xB7 5c\
+      \ only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: topk(15, sum by (name) (rate(spring_kafka_listener_seconds_count{application="$application",namespace="$namespace",name=~"$kafka_listener",result="failure"}[5m])))
+        legend: '{{name}}'
+  kafka_listener_p95:
+    id: kafka_listener_p95
+    kind: metric
+    description: Spring Kafka listener duration p95 (or avg fallback)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "(\n  histogram_quantile(\n    0.95,\n    sum by (name, le)\
+          \ (\n      rate(spring_kafka_listener_seconds_bucket{application=\"$application\"\
+          ,namespace=\"$namespace\",name=~\"$kafka_listener\"}[5m])\n    )\n  )\n\
+          ) or (\n  sum by (name) (\n    rate(spring_kafka_listener_seconds_sum{application=\"\
+          $application\",namespace=\"$namespace\",name=~\"$kafka_listener\"}[5m])\n\
+          \  )\n  /\n  clamp_min(\n    sum by (name) (\n      rate(spring_kafka_listener_seconds_count{application=\"\
+          $application\",namespace=\"$namespace\",name=~\"$kafka_listener\"}[5m])\n\
+          \    ),\n    1e-9\n  )\n)"
+        legend: '{{name}}'
+  kafka_consumer_lag:
+    id: kafka_consumer_lag
+    kind: metric
+    description: "Kafka consumer records lag by topic (filter kafka_topic \xB7 5c\
+      \ only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "topk(15, (\n  sum by (topic) (kafka_consumer_fetch_manager_records_lag{application=\"\
+          $application\",namespace=\"$namespace\",topic=~\"$kafka_topic\"})\n  or\
+          \ sum by (topic) (spring_kafka_listener_lag{application=\"$application\"\
+          ,namespace=\"$namespace\",topic=~\"$kafka_topic\"})\n))"
+        legend: '{{topic}}'
+  hikari_connections_active:
+    id: hikari_connections_active
+    kind: metric
+    description: "HikariCP active connections (filter hikari_pool \xB7 5d only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum by (pool) (hikaricp_connections_active{application="$application",namespace="$namespace",pool=~"$hikari_pool"})
+        legend: '{{pool}}'
+  hikari_connections_pending:
+    id: hikari_connections_pending
+    kind: metric
+    description: "HikariCP pending connection requests (filter hikari_pool \xB7 5d\
+      \ only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum by (pool) (hikaricp_connections_pending{application="$application",namespace="$namespace",pool=~"$hikari_pool"})
+        legend: '{{pool}}'
+  hikari_connections_idle:
+    id: hikari_connections_idle
+    kind: metric
+    description: "HikariCP idle connections (filter hikari_pool \xB7 5d only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum by (pool) (hikaricp_connections_idle{application="$application",namespace="$namespace",pool=~"$hikari_pool"})
+        legend: '{{pool}}'
+  hikari_connections_timeout:
+    id: hikari_connections_timeout
+    kind: metric
+    description: "HikariCP connection timeout rate (filter hikari_pool \xB7 5d only)"
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: sum by (pool) (rate(hikaricp_connections_timeout_total{application="$application",namespace="$namespace",pool=~"$hikari_pool"}[5m]))
+        legend: '{{pool}}'

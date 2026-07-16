@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://am.local/schema/signal-module.schema.json",
+  "title": "SignalModule",
+  "type": "object",
+  "required": ["apiVersion", "kind", "module", "signals"],
+  "properties": {
+    "apiVersion": { "type": "string", "const": "am.obs/v1" },
+    "kind": { "type": "string", "const": "SignalModule" },
+    "module": { "type": "string", "minLength": 1 },
+    "dashboard": { "type": "string", "enum": ["technical", "functional", "platform"] },
+    "signals": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["metric", "log", "trace", "link"] }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

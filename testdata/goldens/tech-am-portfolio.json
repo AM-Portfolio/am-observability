@@ -1611,6 +1611,90 @@
       },
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 45
+      },
+      "id": 26,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "cellValues": {
+          "decimals": 1
+        },
+        "color": {
+          "exponent": 0.5,
+          "fill": "#5794F2",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Spectral",
+          "steps": 64
+        },
+        "exemplars": {
+          "color": "#F2495C"
+        },
+        "filterValues": {
+          "le": 1e-09
+        },
+        "legend": {
+          "show": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "mode": "single",
+          "showColorScale": true,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false,
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (le) (\n  rate(http_server_requests_seconds_bucket{application=\"$application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\",uri!~\".*actuator.*\"}[5m])\n)",
+          "format": "heatmap",
+          "legendFormat": "{{le}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Latency density · heatmap",
+      "transparent": true,
+      "type": "heatmap"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
           "color": {
             "mode": "palette-classic"
           },
@@ -1675,10 +1759,10 @@
       "gridPos": {
         "h": 9,
         "w": 12,
-        "x": 12,
-        "y": 45
+        "x": 0,
+        "y": 54
       },
-      "id": 26,
+      "id": 27,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -1763,10 +1847,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 0,
+        "x": 12,
         "y": 54
       },
-      "id": 27,
+      "id": 28,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -1851,10 +1935,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 8,
-        "y": 54
+        "x": 0,
+        "y": 63
       },
-      "id": 28,
+      "id": 29,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -1938,10 +2022,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 16,
-        "y": 54
+        "x": 8,
+        "y": 63
       },
-      "id": 29,
+      "id": 30,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -2026,10 +2110,10 @@
       "gridPos": {
         "h": 8,
         "w": 8,
-        "x": 0,
-        "y": 62
+        "x": 16,
+        "y": 63
       },
-      "id": 30,
+      "id": 31,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -2113,10 +2197,10 @@
       "gridPos": {
         "h": 7,
         "w": 8,
-        "x": 8,
-        "y": 62
+        "x": 0,
+        "y": 71
       },
-      "id": 31,
+      "id": 32,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -2200,10 +2284,10 @@
       "gridPos": {
         "h": 7,
         "w": 8,
-        "x": 16,
-        "y": 62
+        "x": 8,
+        "y": 71
       },
-      "id": 32,
+      "id": 33,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -2287,10 +2371,10 @@
       "gridPos": {
         "h": 7,
         "w": 8,
-        "x": 0,
-        "y": 70
+        "x": 16,
+        "y": 71
       },
-      "id": 33,
+      "id": 34,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -2330,9 +2414,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 78
       },
-      "id": 34,
+      "id": 35,
       "panels": [],
       "title": "3 · API SLO table (also respects Method + API path filter)",
       "type": "row"
@@ -2342,9 +2426,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 78
+        "y": 79
       },
-      "id": 35,
+      "id": 36,
       "options": {
         "code": {
           "language": "markdown",
@@ -2598,9 +2682,9 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 80
+        "y": 81
       },
-      "id": 36,
+      "id": 37,
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
@@ -2790,9 +2874,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 95
       },
-      "id": 37,
+      "id": 38,
       "panels": [],
       "title": "4 · HTTP trends (same Method + API path filter)",
       "type": "row"
@@ -2802,9 +2886,9 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 96
       },
-      "id": 38,
+      "id": 39,
       "options": {
         "code": {
           "language": "markdown",
@@ -2869,9 +2953,9 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 98
+        "y": 99
       },
-      "id": 39,
+      "id": 40,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -2956,9 +3040,9 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 98
+        "y": 99
       },
-      "id": 40,
+      "id": 41,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3012,9 +3096,9 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 98
+        "y": 99
       },
-      "id": 41,
+      "id": 42,
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -3109,9 +3193,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 106
+        "y": 107
       },
-      "id": 42,
+      "id": 43,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3196,9 +3280,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 106
+        "y": 107
       },
-      "id": 43,
+      "id": 44,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3283,9 +3367,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 106
+        "y": 107
       },
-      "id": 44,
+      "id": 45,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3370,9 +3454,9 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 113
+        "y": 114
       },
-      "id": 45,
+      "id": 46,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3412,9 +3496,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 120
+        "y": 121
       },
-      "id": 46,
+      "id": 47,
       "panels": [],
       "title": "5a · MongoDB",
       "type": "row"
@@ -3424,9 +3508,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 121
+        "y": 122
       },
-      "id": 47,
+      "id": 48,
       "options": {
         "code": {
           "language": "markdown",
@@ -3491,9 +3575,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 123
+        "y": 124
       },
-      "id": 48,
+      "id": 49,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3578,9 +3662,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 123
+        "y": 124
       },
-      "id": 49,
+      "id": 50,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3666,9 +3750,9 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 132
+        "y": 133
       },
-      "id": 50,
+      "id": 51,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3754,9 +3838,9 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 132
+        "y": 133
       },
-      "id": 51,
+      "id": 52,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3796,9 +3880,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 139
+        "y": 140
       },
-      "id": 52,
+      "id": 53,
       "panels": [],
       "title": "5b · Redis",
       "type": "row"
@@ -3808,9 +3892,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 140
+        "y": 141
       },
-      "id": 53,
+      "id": 54,
       "options": {
         "code": {
           "language": "markdown",
@@ -3875,9 +3959,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 142
+        "y": 143
       },
-      "id": 54,
+      "id": 55,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -3962,9 +4046,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 142
+        "y": 143
       },
-      "id": 55,
+      "id": 56,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4004,9 +4088,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 151
+        "y": 152
       },
-      "id": 56,
+      "id": 57,
       "panels": [],
       "title": "5c · Kafka",
       "type": "row"
@@ -4016,9 +4100,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 152
+        "y": 153
       },
-      "id": 57,
+      "id": 58,
       "options": {
         "code": {
           "language": "markdown",
@@ -4083,9 +4167,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 154
+        "y": 155
       },
-      "id": 58,
+      "id": 59,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4170,9 +4254,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 154
+        "y": 155
       },
-      "id": 59,
+      "id": 60,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4257,9 +4341,9 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 163
+        "y": 164
       },
-      "id": 60,
+      "id": 61,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4344,9 +4428,9 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 163
+        "y": 164
       },
-      "id": 61,
+      "id": 62,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4386,9 +4470,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 172
+        "y": 173
       },
-      "id": 62,
+      "id": 63,
       "panels": [],
       "title": "5d · SQL / HikariCP",
       "type": "row"
@@ -4398,9 +4482,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 174
       },
-      "id": 63,
+      "id": 64,
       "options": {
         "code": {
           "language": "markdown",
@@ -4465,9 +4549,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 175
+        "y": 176
       },
-      "id": 64,
+      "id": 65,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4552,9 +4636,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 175
+        "y": 176
       },
-      "id": 65,
+      "id": 66,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4639,9 +4723,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 183
+        "y": 184
       },
-      "id": 66,
+      "id": 67,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4727,9 +4811,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 183
+        "y": 184
       },
-      "id": 67,
+      "id": 68,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4769,9 +4853,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 191
+        "y": 192
       },
-      "id": 68,
+      "id": 69,
       "panels": [],
       "title": "6 · JVM / process",
       "type": "row"
@@ -4781,9 +4865,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 192
+        "y": 193
       },
-      "id": 69,
+      "id": 70,
       "options": {
         "code": {
           "language": "markdown",
@@ -4848,9 +4932,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 194
+        "y": 195
       },
-      "id": 70,
+      "id": 71,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -4936,9 +5020,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 194
+        "y": 195
       },
-      "id": 71,
+      "id": 72,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5024,9 +5108,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 194
+        "y": 195
       },
-      "id": 72,
+      "id": 73,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5111,9 +5195,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 201
+        "y": 202
       },
-      "id": 73,
+      "id": 74,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5199,9 +5283,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 201
+        "y": 202
       },
-      "id": 74,
+      "id": 75,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5287,9 +5371,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 201
+        "y": 202
       },
-      "id": 75,
+      "id": 76,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5375,9 +5459,9 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 208
+        "y": 209
       },
-      "id": 76,
+      "id": 77,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5463,9 +5547,9 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 208
+        "y": 209
       },
-      "id": 77,
+      "id": 78,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5550,9 +5634,9 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 208
+        "y": 209
       },
-      "id": 78,
+      "id": 79,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5592,9 +5676,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 215
+        "y": 216
       },
-      "id": 79,
+      "id": 80,
       "panels": [],
       "title": "7 · Kubernetes pressure",
       "type": "row"
@@ -5604,9 +5688,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 216
+        "y": 217
       },
-      "id": 80,
+      "id": 81,
       "options": {
         "code": {
           "language": "markdown",
@@ -5672,9 +5756,9 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 218
+        "y": 219
       },
-      "id": 81,
+      "id": 82,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5760,9 +5844,9 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 218
+        "y": 219
       },
-      "id": 82,
+      "id": 83,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -5802,9 +5886,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 225
+        "y": 226
       },
-      "id": 83,
+      "id": 84,
       "panels": [],
       "title": "8 · Evidence — traces & logs",
       "type": "row"
@@ -5814,9 +5898,9 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 226
+        "y": 227
       },
-      "id": 84,
+      "id": 85,
       "options": {
         "code": {
           "language": "markdown",
@@ -5835,9 +5919,9 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 228
+        "y": 229
       },
-      "id": 85,
+      "id": 86,
       "options": {
         "code": {
           "language": "markdown",
@@ -5859,9 +5943,9 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 231
+        "y": 232
       },
-      "id": 86,
+      "id": 87,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
@@ -5896,9 +5980,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 240
+        "y": 241
       },
-      "id": 87,
+      "id": 88,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,

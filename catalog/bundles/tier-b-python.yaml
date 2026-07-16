@@ -1,0 +1,8 @@
+apiVersion: am.obs/v1
+kind: SignalBundle
+id: tier-b-python
+tier: B
+runtime: python
+includes:
+- kubernetes
+- logs-traces

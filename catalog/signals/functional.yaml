@@ -1,0 +1,104 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: functional
+dashboard: functional
+signals:
+  biz_slow_api_table:
+    id: biz_slow_api_table
+    kind: metric
+    description: "Product table \u2014 calls, fails, avg latency, p95 (sort by avg\
+      \ to find 20\u201330s APIs)"
+    panel_type: table
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        join_field: api
+        queries:
+        - refId: Total
+          legend: Total
+          expr_template: "sum by (api) (\n  label_join(\n    sum by (method, uri)\
+            \ (\n      increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n    ),\n    \"api\", \" \", \"method\"\
+            , \"uri\"\n  )\n)"
+        - refId: Fail
+          legend: Fail
+          expr_template: "sum by (api) (\n  label_join(\n    sum by (method, uri)\
+            \ (\n      increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\",status=~\"[45]..\"}[$__range])\n    ),\n    \"\
+            api\", \" \", \"method\", \"uri\"\n  )\n) or (\n  sum by (api) (\n   \
+            \ label_join(\n      sum by (method, uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ) * 0\n)"
+        - refId: Avg
+          legend: avg
+          expr_template: "sum by (api) (\n  label_join(\n    sum by (method, uri)\
+            \ (\n      increase(http_server_requests_seconds_sum{application=\"$application\"\
+            ,namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\",uri!~\".*actuator.*\"\
+            }[$__range])\n    ),\n    \"api\", \" \", \"method\", \"uri\"\n  )\n)\
+            \ / clamp_min(\n  sum by (api) (\n    label_join(\n      sum by (method,\
+            \ uri) (\n        increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  ),\n  1\n)"
+        - refId: P95
+          legend: p95
+          expr_template: "(\n  histogram_quantile(\n    0.95,\n    sum by (api, le)\
+            \ (\n      label_join(\n        sum by (method, uri, le) (\n         \
+            \ rate(http_server_requests_seconds_bucket{application=\"$application\"\
+            ,namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\",uri!~\".*actuator.*\"\
+            }[$__range])\n        ),\n        \"api\", \" \", \"method\", \"uri\"\n\
+            \      )\n    )\n  )\n) or (\n  sum by (api) (\n    label_join(\n    \
+            \  sum by (method, uri) (\n        increase(http_server_requests_seconds_sum{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n      ),\n      \"api\", \" \", \"\
+            method\", \"uri\"\n    )\n  )\n  /\n  clamp_min(\n    sum by (api) (\n\
+            \      label_join(\n        sum by (method, uri) (\n          increase(http_server_requests_seconds_count{application=\"\
+            $application\",namespace=\"$namespace\",method=~\"$method\",uri=~\"$uri\"\
+            ,uri!~\".*actuator.*\"}[$__range])\n        ),\n        \"api\", \" \"\
+            , \"method\", \"uri\"\n      )\n    ),\n    1\n  )\n)"
+  portfolio_users_total:
+    id: portfolio_users_total
+    kind: metric
+    description: Distinct portfolio owners (domain gauge)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  portfolio_users_total{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n  or portfolio_users{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: Users
+  portfolio_portfolios_total:
+    id: portfolio_portfolios_total
+    kind: metric
+    description: Portfolio document count (domain gauge)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  portfolio_portfolios_total{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n  or portfolio_portfolios{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: Portfolios
+  portfolio_holdings_total:
+    id: portfolio_holdings_total
+    kind: metric
+    description: Equity holdings count across portfolios (domain gauge)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  portfolio_holdings_total{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n  or portfolio_holdings{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: Holdings

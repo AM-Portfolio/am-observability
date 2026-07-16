@@ -1,0 +1,151 @@
+apiVersion: am.obs/v1
+kind: SignalModule
+module: kafka
+dashboard: platform
+signals:
+  infra_kafka_brokers:
+    id: infra_kafka_brokers
+    kind: metric
+    description: Number of Kafka brokers visible to exporter
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: max(kafka_brokers{namespace="$namespace"})
+  infra_kafka_exporter_up:
+    id: infra_kafka_exporter_up
+    kind: metric
+    description: kafka_exporter scrape up
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: max(up{namespace="$namespace",pod=~"kafka-exporter.*",job="kubernetes-pods"})
+  infra_kafka_topic_partitions:
+    id: infra_kafka_topic_partitions
+    kind: metric
+    description: Partition count by topic
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{topic}}'
+        expr_template: kafka_topic_partitions{namespace="$namespace",topic=~"$topic"}
+  infra_kafka_msg_in:
+    id: infra_kafka_msg_in
+    kind: metric
+    description: Approximate messages written per second (rate of log-end offset)
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{topic}}-p{{partition}}'
+        expr_template: "sum by (topic, partition) (\n  rate(kafka_topic_partition_current_offset{namespace=\"\
+          $namespace\",topic=~\"$topic\"}[5m])\n)"
+  infra_kafka_msg_in_by_topic:
+    id: infra_kafka_msg_in_by_topic
+    kind: metric
+    description: Messages in / s by topic
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{topic}}'
+        expr_template: "topk(20,\n  sum by (topic) (\n    rate(kafka_topic_partition_current_offset{namespace=\"\
+          $namespace\",topic=~\"$topic\"}[5m])\n  )\n)"
+  infra_kafka_log_end_offset:
+    id: infra_kafka_log_end_offset
+    kind: metric
+    description: Log end offset by topic partition
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{topic}}-p{{partition}}'
+        expr_template: kafka_topic_partition_current_offset{namespace="$namespace",topic=~"$topic"}
+  infra_kafka_log_start_offset:
+    id: infra_kafka_log_start_offset
+    kind: metric
+    description: Oldest retained offset by topic partition
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{topic}}-p{{partition}}'
+        expr_template: kafka_topic_partition_oldest_offset{namespace="$namespace",topic=~"$topic"}
+  infra_kafka_under_replicated:
+    id: infra_kafka_under_replicated
+    kind: metric
+    description: Under-replicated partitions (0 expected with RF=1)
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "sum(kafka_topic_partition_under_replicated_partition{namespace=\"\
+          $namespace\",topic=~\"$topic\"})\n  or vector(0)"
+  infra_kafka_cg_lag:
+    id: infra_kafka_cg_lag
+    kind: metric
+    description: Consumer group lag by topic partition
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{consumergroup}} {{topic}}-p{{partition}}'
+        expr_template: kafka_consumergroup_lag{namespace="$namespace",consumergroup=~"$consumergroup",topic=~"$topic"}
+  infra_kafka_cg_lag_sum:
+    id: infra_kafka_cg_lag_sum
+    kind: metric
+    description: Total lag by consumer group
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{consumergroup}}'
+        expr_template: "topk(20,\n  sum by (consumergroup) (\n    kafka_consumergroup_lag{namespace=\"\
+          $namespace\",consumergroup=~\"$consumergroup\",topic=~\"$topic\"}\n  )\n\
+          )"
+  infra_kafka_cg_lag_max:
+    id: infra_kafka_cg_lag_max
+    kind: metric
+    description: Max partition lag across filtered groups
+    panel_type: stat
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        expr_template: "max(kafka_consumergroup_lag{namespace=\"$namespace\",consumergroup=~\"\
+          $consumergroup\",topic=~\"$topic\"})\n  or vector(0)"
+  infra_kafka_cg_current_offset:
+    id: infra_kafka_cg_current_offset
+    kind: metric
+    description: Consumer group current offset
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    adapter_map:
+      prometheus:
+        legend: '{{consumergroup}} {{topic}}-p{{partition}}'
+        expr_template: kafka_consumergroup_current_offset{namespace="$namespace",consumergroup=~"$consumergroup",topic=~"$topic"}
+  infra_kafka_cg_members:
+    id: infra_kafka_cg_members
+    kind: metric
+    description: Consumer group member count
+    panel_type: timeseries
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        legend: '{{consumergroup}}'
+        expr_template: kafka_consumergroup_members{namespace="$namespace",consumergroup=~"$consumergroup"}

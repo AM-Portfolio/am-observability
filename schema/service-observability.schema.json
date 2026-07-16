@@ -34,8 +34,23 @@
     },
     "signals": {
       "type": "object",
-      "required": ["uses"],
       "properties": {
+        "bundle": { "type": "string", "minLength": 1 },
+        "include": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "domain": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "groups": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        },
         "uses": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
