@@ -268,12 +268,17 @@ def compose_shared(
     *,
     default: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
-    """One technical dashboard for all registry services (Service dropdown)."""
+    """One technical dashboard; Service dropdown is Prometheus-discovered (Plane A).
+
+    ``targets`` only seed default namespace / application metadata for the IR —
+    they are not baked into the Grafana Service variable.
+    """
     warnings: list[str] = []
-    if not targets:
+    if not targets and not default:
         return {}, ["no service targets for shared dashboard"]
 
-    default = default or targets[0]
+    default = default or (targets[0] if targets else None)
+    assert default is not None
     namespace = default["namespace"]
     env = env_from_namespace(namespace)
 
@@ -291,17 +296,18 @@ def compose_shared(
         or "AM / Technical",
         "service": default["service"],
         "namespace": namespace,
-        "app": default["app"],
-        "application": default["application"],
+        "app": default.get("app") or default["service"],
+        "application": default.get("application") or default["service"],
         "env": env,
         "tags": ["am", "technical", "shared", env],
         "panels": panels_out,
+        # Kept for fixtures / report metadata only — renderer discovers live labels.
         "service_targets": targets,
         "vars": {
             "service": default["service"],
             "namespace": namespace,
-            "app": default["app"],
-            "application": default["application"],
+            "app": default.get("app") or default["service"],
+            "application": default.get("application") or default["service"],
             "env": env,
         },
     }
@@ -315,12 +321,13 @@ def compose_shared_functional(
     default: dict[str, str] | None = None,
     uses: set[str] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
-    """One Functional / Services product dashboard (Service dropdown)."""
+    """One Functional / Services product dashboard; Service via Prometheus discovery."""
     warnings: list[str] = []
-    if not targets:
+    if not targets and not default:
         return {}, ["no service targets for functional dashboard"]
 
-    default = default or targets[0]
+    default = default or (targets[0] if targets else None)
+    assert default is not None
     namespace = default["namespace"]
     env = env_from_namespace(namespace)
 
@@ -334,8 +341,8 @@ def compose_shared_functional(
         "folder": ctx.functional_template.get("folder") or "AM / Functional",
         "service": default["service"],
         "namespace": namespace,
-        "app": default["app"],
-        "application": default["application"],
+        "app": default.get("app") or default["service"],
+        "application": default.get("application") or default["service"],
         "env": env,
         "tags": ["am", "functional", "shared", env],
         "panels": panels_out,
@@ -343,8 +350,8 @@ def compose_shared_functional(
         "vars": {
             "service": default["service"],
             "namespace": namespace,
-            "app": default["app"],
-            "application": default["application"],
+            "app": default.get("app") or default["service"],
+            "application": default.get("application") or default["service"],
             "env": env,
         },
     }

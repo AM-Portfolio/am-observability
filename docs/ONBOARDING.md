@@ -6,7 +6,7 @@ Service deploy registers the app in shared Grafana. You do **not** edit am-obser
 
 | Plane | What | Who acts |
 |-------|------|----------|
-| **A** Registration | Scrape → Prometheus → appears in `tech-am-services` dropdown | Service deploy only |
+| **A** Registration | Scrape → Prometheus `application=` label → `tech-am-services` Service dropdown (live `label_values`) | Service deploy only |
 | **B** Shared dashboards | New panels for everyone | am-obs release → am-infra `obs-upgrade` |
 | **C** Panel visibility (optional) | Filtered `tech-view-{service}` | Service `dashboard:` prefs + `gen.py compose-view` |
 

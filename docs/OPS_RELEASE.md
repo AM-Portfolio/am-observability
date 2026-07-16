@@ -32,3 +32,5 @@ kubectl apply -f k8s/grafana/dashboards/
 | `INFRA_DISPATCH_TOKEN` | am-observability | PAT/App token with `repo` on private am-infra for `repository_dispatch` |
 
 Without it, release still publishes assets; run am-infra `obs-upgrade` apply manually.
+
+`am-observability` is **public** — apply downloads `grafana-dashboards-*.zip` with no token. If self-hosted curl hangs, it is VPS egress to `release-assets.githubusercontent.com`, not auth.

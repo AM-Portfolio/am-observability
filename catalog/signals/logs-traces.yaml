@@ -6,13 +6,13 @@ signals:
   service_logs_all:
     id: service_logs_all
     kind: log
-    description: All service logs for namespace+pod prefix
+    description: All service logs for namespace + discovered pods
     panel_type: logs
     adapters:
     - loki
     adapter_map:
       loki:
-        expr_template: '{namespace="$namespace",pod=~"$app.*"}'
+        expr_template: '{namespace="$namespace",pod=~"$pod"}'
   service_error_logs:
     id: service_error_logs
     kind: log
@@ -22,7 +22,7 @@ signals:
     - loki
     adapter_map:
       loki:
-        expr_template: '{namespace="$namespace",pod=~"$app.*"} |~ "(?i)error|exception|fatal|failed"'
+        expr_template: '{namespace="$namespace",pod=~"$pod"} |~ "(?i)error|exception|fatal|failed"'
   trace_latency_p95:
     id: trace_latency_p95
     kind: trace
@@ -32,5 +32,5 @@ signals:
     - tempo
     adapter_map:
       tempo:
-        link_template: /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$service}","queryType":"traceql"}]
-        search: service.name="$service"
+        link_template: /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$application}","queryType":"traceql"}]
+        search: service.name="$application"

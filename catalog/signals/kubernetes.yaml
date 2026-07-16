@@ -13,7 +13,7 @@ signals:
     adapter_map:
       prometheus:
         expr_template: "count(\n  count by (pod) (\n    container_memory_working_set_bytes{namespace=\"\
-          $namespace\",pod=~\"$app.*\",container!=\"\",container!=\"POD\"}\n  )\n)"
+          $namespace\",pod=~\"$pod\",container!=\"\",container!=\"POD\"}\n  )\n)"
   k8s_image_version:
     id: k8s_image_version
     kind: metric
@@ -28,7 +28,7 @@ signals:
         - refId: Image
           legend: pods
           expr_template: "count by (image) (\n  container_cpu_usage_seconds_total{namespace=\"\
-            $namespace\",pod=~\"$app.*\",container!=\"\",container!=\"POD\"}\n)"
+            $namespace\",pod=~\"$pod\",container!=\"\",container!=\"POD\"}\n)"
   k8s_helm_chart:
     id: k8s_helm_chart
     kind: metric
@@ -44,9 +44,9 @@ signals:
         - refId: Chart
           legend: pods
           expr_template: "count by (helm_sh_chart) (\n  up{namespace=\"$namespace\"\
-            ,pod=~\"$app.*\",helm_sh_chart!=\"\"}\n) or label_replace(\n  count by\
+            ,pod=~\"$pod\",helm_sh_chart!=\"\"}\n) or label_replace(\n  count by\
             \ (label_helm_sh_chart) (\n    kube_pod_labels{namespace=\"$namespace\"\
-            ,pod=~\"$app.*\",label_helm_sh_chart!=\"\"}\n  ),\n  \"helm_sh_chart\"\
+            ,pod=~\"$pod\",label_helm_sh_chart!=\"\"}\n  ),\n  \"helm_sh_chart\"\
             , \"$1\", \"label_helm_sh_chart\", \"(.*)\"\n)"
   k8s_app_version:
     id: k8s_app_version
@@ -63,9 +63,9 @@ signals:
         - refId: Version
           legend: pods
           expr_template: "count by (app_kubernetes_io_version) (\n  up{namespace=\"\
-            $namespace\",pod=~\"$app.*\",app_kubernetes_io_version!=\"\"}\n) or label_replace(\n\
+            $namespace\",pod=~\"$pod\",app_kubernetes_io_version!=\"\"}\n) or label_replace(\n\
             \  count by (label_app_kubernetes_io_version) (\n    kube_pod_labels{namespace=\"\
-            $namespace\",pod=~\"$app.*\",label_app_kubernetes_io_version!=\"\"}\n\
+            $namespace\",pod=~\"$pod\",label_app_kubernetes_io_version!=\"\"}\n\
             \  ),\n  \"app_kubernetes_io_version\", \"$1\", \"label_app_kubernetes_io_version\"\
             , \"(.*)\"\n)"
   k8s_cpu_usage:
@@ -77,7 +77,7 @@ signals:
     - prometheus
     adapter_map:
       prometheus:
-        expr_template: sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}[5m]))
+        expr_template: sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$pod",container!="",container!="POD"}[5m]))
   k8s_memory_usage:
     id: k8s_memory_usage
     kind: metric
@@ -87,7 +87,7 @@ signals:
     - prometheus
     adapter_map:
       prometheus:
-        expr_template: sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"})
+        expr_template: sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$pod",container!="",container!="POD"})
   k8s_restarts:
     id: k8s_restarts
     kind: metric
@@ -99,7 +99,7 @@ signals:
     omit_warn: Requires kube-state-metrics; omit+warn if missing on cluster
     adapter_map:
       prometheus:
-        expr_template: sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"})
+        expr_template: sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"})
   service_health_up:
     id: service_health_up
     kind: metric
@@ -111,8 +111,8 @@ signals:
     adapter_map:
       prometheus:
         expr_template: "max(up{job=\"kubernetes-pods\",namespace=\"$namespace\",pod=~\"\
-          $app.*\"})\n  or max(up{kubernetes_namespace=\"$namespace\",kubernetes_pod_name=~\"\
-          $app.*\"})"
+          $pod\"})\n  or max(up{kubernetes_namespace=\"$namespace\",kubernetes_pod_name=~\"\
+          $pod\"})"
   service_health_score:
     id: service_health_score
     kind: metric
@@ -125,12 +125,12 @@ signals:
       prometheus:
         expr_template: "clamp_min(\n  clamp_max(\n    100\n    - 40 * (1 - clamp_max(\n\
           \        max(up{job=\"kubernetes-pods\",namespace=\"$namespace\",pod=~\"\
-          $app.*\"})\n          or max(up{namespace=\"$namespace\",pod=~\"$app.*\"\
+          $pod\"})\n          or max(up{namespace=\"$namespace\",pod=~\"$pod\"\
           })\n          or vector(0),\n        1))\n    - 15 * clamp_max(\n      \
           \  ((sum(kube_pod_container_status_restarts_total{namespace=\"$namespace\"\
-          ,pod=~\"$app.*\"}) or vector(0)) > bool 0),\n        1)\n    - 10 * clamp_max(\n\
+          ,pod=~\"$pod\"}) or vector(0)) > bool 0),\n        1)\n    - 10 * clamp_max(\n\
           \        ((sum(kube_pod_container_status_restarts_total{namespace=\"$namespace\"\
-          ,pod=~\"$app.*\"}) or vector(0)) >= bool 3),\n        1)\n    - 15 * clamp_max(\n\
+          ,pod=~\"$pod\"}) or vector(0)) >= bool 3),\n        1)\n    - 15 * clamp_max(\n\
           \        (\n          (sum(rate(http_server_requests_seconds_count{application=\"\
           $application\",namespace=\"$namespace\",status=~\"5..\"}[5m])) or vector(0))\n\
           \          /\n          clamp_min(\n            (sum(rate(http_server_requests_seconds_count{application=\"\
@@ -159,12 +159,12 @@ signals:
       prometheus:
         expr_template: "(\n  clamp_min(\n    clamp_max(\n      100\n      - 40 * (1\
           \ - clamp_max(\n          max(up{job=\"kubernetes-pods\",namespace=\"$namespace\"\
-          ,pod=~\"$app.*\"})\n            or max(up{namespace=\"$namespace\",pod=~\"\
-          $app.*\"})\n            or vector(0),\n          1))\n      - 15 * clamp_max(\n\
+          ,pod=~\"$pod\"})\n            or max(up{namespace=\"$namespace\",pod=~\"\
+          $pod\"})\n            or vector(0),\n          1))\n      - 15 * clamp_max(\n\
           \          ((sum(kube_pod_container_status_restarts_total{namespace=\"$namespace\"\
-          ,pod=~\"$app.*\"}) or vector(0)) > bool 0),\n          1)\n      - 10 *\
+          ,pod=~\"$pod\"}) or vector(0)) > bool 0),\n          1)\n      - 10 *\
           \ clamp_max(\n          ((sum(kube_pod_container_status_restarts_total{namespace=\"\
-          $namespace\",pod=~\"$app.*\"}) or vector(0)) >= bool 3),\n          1)\n\
+          $namespace\",pod=~\"$pod\"}) or vector(0)) >= bool 3),\n          1)\n\
           \      - 15 * clamp_max(\n          (\n            (sum(rate(http_server_requests_seconds_count{application=\"\
           $application\",namespace=\"$namespace\",status=~\"5..\"}[5m])) or vector(0))\n\
           \            /\n            clamp_min(\n              (sum(rate(http_server_requests_seconds_count{application=\"\
@@ -185,12 +185,12 @@ signals:
           heap\"}) or vector(1)), 1)\n            >= bool 0.9\n          ),\n    \
           \      1),\n      100),\n    0)\n  >= bool 80\n) + (\n  clamp_min(\n   \
           \ clamp_max(\n      100\n      - 40 * (1 - clamp_max(\n          max(up{job=\"\
-          kubernetes-pods\",namespace=\"$namespace\",pod=~\"$app.*\"})\n         \
-          \   or max(up{namespace=\"$namespace\",pod=~\"$app.*\"})\n            or\
+          kubernetes-pods\",namespace=\"$namespace\",pod=~\"$pod\"})\n         \
+          \   or max(up{namespace=\"$namespace\",pod=~\"$pod\"})\n            or\
           \ vector(0),\n          1))\n      - 15 * clamp_max(\n          ((sum(kube_pod_container_status_restarts_total{namespace=\"\
-          $namespace\",pod=~\"$app.*\"}) or vector(0)) > bool 0),\n          1)\n\
+          $namespace\",pod=~\"$pod\"}) or vector(0)) > bool 0),\n          1)\n\
           \      - 10 * clamp_max(\n          ((sum(kube_pod_container_status_restarts_total{namespace=\"\
-          $namespace\",pod=~\"$app.*\"}) or vector(0)) >= bool 3),\n          1)\n\
+          $namespace\",pod=~\"$pod\"}) or vector(0)) >= bool 3),\n          1)\n\
           \      - 15 * clamp_max(\n          (\n            (sum(rate(http_server_requests_seconds_count{application=\"\
           $application\",namespace=\"$namespace\",status=~\"5..\"}[5m])) or vector(0))\n\
           \            /\n            clamp_min(\n              (sum(rate(http_server_requests_seconds_count{application=\"\

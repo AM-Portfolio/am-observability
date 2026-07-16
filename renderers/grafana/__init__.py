@@ -4,12 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-# Compound Service dropdown value: service#app#application (auto-fills panels).
-_SERVICE_PACK_SEP = "#"
-_PACK_QUERY = (
-    'query_result(label_replace(vector(1), "v", "$service_pack", "", ""))'
-)
-
 # Grafana palette colors — readable on both dark and light themes
 _GREEN = "#73BF69"
 _YELLOW = "#FADE2A"
@@ -845,92 +839,47 @@ def _var_custom(name: str, label: str, value: str, options: list[str]) -> dict[s
     }
 
 
-def _var_custom_kv(
-    name: str,
-    label: str,
-    *,
-    current_text: str,
-    current_value: str,
-    pairs: list[tuple[str, str]],
-) -> dict[str, Any]:
-    opts = []
-    query_parts = []
-    for text, value in pairs:
-        opts.append({"selected": value == current_value, "text": text, "value": value})
-        query_parts.append(f"{text} : {value}")
-    return {
-        "name": name,
-        "label": label,
-        "type": "custom",
-        "hide": 0,
-        "multi": False,
-        "includeAll": False,
-        "query": ",".join(query_parts),
-        "current": {"selected": True, "text": current_text, "value": current_value},
-        "options": opts,
-    }
-
-
-def _var_derived_from_pack(
-    name: str,
-    label: str,
-    *,
-    value: str,
-    regex: str,
-    datasource_uid: str = "prometheus",
-) -> dict[str, Any]:
-    return {
-        "name": name,
-        "label": label,
-        "type": "query",
-        "hide": 2,
-        "multi": False,
-        "includeAll": False,
-        "datasource": {"type": "prometheus", "uid": datasource_uid},
-        "definition": _PACK_QUERY,
-        "query": _PACK_QUERY,
-        "regex": regex,
-        "refresh": 1,
-        "sort": 0,
-        "current": {"selected": True, "text": value, "value": value},
-        "options": [{"selected": True, "text": value, "value": value}],
-    }
-
-
 def _var_prom_label(
     name: str,
     label: str,
     *,
     query: str,
     datasource_uid: str = "prometheus",
-    all_value: str = ".*",
+    all_value: str | None = ".*",
+    multi: bool = False,
+    hide: int = 0,
+    include_all: bool = True,
+    current: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Prometheus label_values dropdown with All = regex .* (sum of matching series)."""
-    return {
+    """Prometheus label_values dropdown.
+
+    When include_all and all_value is None, Grafana joins all option values with `|`
+    (needed for pod=~"$pod" scoped to the selected application).
+    """
+    var: dict[str, Any] = {
         "name": name,
         "label": label,
         "type": "query",
-        "hide": 0,
-        "multi": False,
-        "includeAll": True,
-        "allValue": all_value,
+        "hide": hide,
+        "multi": multi,
+        "includeAll": include_all,
         "datasource": {"type": "prometheus", "uid": datasource_uid},
         "definition": query,
         "query": query,
         "refresh": 2,
         "sort": 1,
         "regex": "",
-        "current": {"selected": True, "text": "All", "value": "$__all"},
         "options": [],
     }
-
-
-def _service_pack(target: dict[str, str]) -> str:
-    return (
-        f"{target['service']}{_SERVICE_PACK_SEP}"
-        f"{target['app']}{_SERVICE_PACK_SEP}"
-        f"{target['application']}"
-    )
+    if include_all and all_value is not None:
+        var["allValue"] = all_value
+    if current is not None:
+        var["current"] = current
+    elif include_all:
+        var["current"] = {"selected": True, "text": "All", "value": "$__all"}
+    else:
+        var["current"] = {"selected": False, "text": "", "value": ""}
+    return var
 
 
 def _templating_platform(ir: dict[str, Any]) -> dict[str, Any]:
@@ -1006,28 +955,21 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
         return _templating_platform(ir)
 
     ns = ir["namespace"]
-    service = ir["service"]
-    app = ir["app"]
-    application = ir.get("application") or service
-    targets = ir.get("service_targets") or [
-        {"service": service, "app": app, "application": application, "namespace": ns}
-    ]
-
-    pack = _service_pack({"service": service, "app": app, "application": application})
-    pairs = [(t["service"], _service_pack(t)) for t in targets]
-    seen: set[str] = set()
-    unique_pairs: list[tuple[str, str]] = []
-    for text, value in pairs:
-        if text in seen:
-            continue
-        seen.add(text)
-        unique_pairs.append((text, value))
+    application = str(ir.get("application") or ir.get("service") or "")
 
     ds_uid = "prometheus"
     inputs = ir.get("bindings_inputs") or {}
     metrics = inputs.get("metrics") or {}
     if metrics.get("datasource_uid"):
         ds_uid = str(metrics["datasource_uid"])
+
+    # Plane A: Service = whatever Prometheus already knows (Micrometer application=).
+    # Pods are joined from the same series (kubernetes-pods scrape stamps pod=).
+    app_current = (
+        {"selected": True, "text": application, "value": application}
+        if application
+        else {"selected": False, "text": "", "value": ""}
+    )
 
     return {
         "list": [
@@ -1037,33 +979,34 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 ns,
                 ["am-apps-preprod", "am-apps-prod", "am-apps-dev"],
             ),
-            _var_custom_kv(
-                "service_pack",
+            _var_prom_label(
+                "application",
                 "Service",
-                current_text=service,
-                current_value=pack,
-                pairs=unique_pairs,
-            ),
-            _var_derived_from_pack(
-                "service",
-                "service",
-                value=service,
-                regex=r'/v="(?<value>[^#]+)#/',
+                query=(
+                    "label_values("
+                    'jvm_memory_used_bytes{namespace="$namespace"}, application)'
+                ),
                 datasource_uid=ds_uid,
+                include_all=False,
+                multi=False,
+                hide=0,
+                all_value=None,
+                current=app_current,
             ),
-            _var_derived_from_pack(
-                "app",
-                "app",
-                value=app,
-                regex=r'/v="[^#]+#(?<value>[^#]+)#/',
+            # Hidden: expands to this application's pods (pipe-joined when All).
+            _var_prom_label(
+                "pod",
+                "Pod",
+                query=(
+                    "label_values("
+                    'jvm_memory_used_bytes{namespace="$namespace",'
+                    'application="$application"}, pod)'
+                ),
                 datasource_uid=ds_uid,
-            ),
-            _var_derived_from_pack(
-                "application",
-                "application",
-                value=application,
-                regex=r'/v="[^#]+#[^#]+#(?<value>[^"]+)"/',
-                datasource_uid=ds_uid,
+                multi=True,
+                hide=2,
+                include_all=True,
+                all_value=None,
             ),
             # HTTP only — Method / API path do not affect dep panels
             _var_prom_label(

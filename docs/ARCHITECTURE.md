@@ -18,7 +18,7 @@ Switch **feeds** (logs/metrics/traces) and **dashboard UI** independently — sa
 Plane A — Service deploy
   observability.yaml + scrape annotations
   → Prometheus discovers application=
-  → shared tech-am-services dropdown (no am-obs/am-infra PR)
+  → shared tech-am-services Service dropdown via label_values (no am-obs/am-infra PR)
 
 Plane B — Shared dashboard upgrade
   am-obs tag → package-release zip

@@ -31,14 +31,12 @@ def test_metrics_application_as_grafana_var():
     assert "$application" in joined or "${application}" in joined
     assert "$uri" in joined or 'uri=~"$uri"' in joined
     assert 'application="portfolio-app"' not in joined
-    # Service dropdown + derived vars (app/application hidden)
+    # Service = Prometheus discovery; pods joined from application series
     by_name = {v["name"]: v for v in dashboard["templating"]["list"]}
     assert set(by_name) >= {
         "namespace",
-        "service_pack",
-        "service",
-        "app",
         "application",
+        "pod",
         "method",
         "uri",
         "mongo_command",
@@ -47,6 +45,7 @@ def test_metrics_application_as_grafana_var():
         "kafka_topic",
         "hikari_pool",
     }
+    assert "service_pack" not in by_name
     assert by_name["uri"]["type"] == "query"
     assert by_name["uri"]["includeAll"] is True
     assert by_name["method"]["includeAll"] is True
@@ -54,10 +53,18 @@ def test_metrics_application_as_grafana_var():
     assert by_name["mongo_command"]["includeAll"] is True
     assert by_name["kafka_topic"]["label"] == "Kafka topic (5c)"
     assert by_name["namespace"]["type"] == "custom"
-    assert by_name["service_pack"]["type"] == "custom"
-    assert by_name["service_pack"]["label"] == "Service"
-    assert by_name["application"]["hide"] == 2
-    assert "portfolio-app" in by_name["service_pack"]["current"]["value"]
+    assert by_name["application"]["type"] == "query"
+    assert by_name["application"]["label"] == "Service"
+    assert by_name["application"]["hide"] == 0
+    assert by_name["application"]["includeAll"] is False
+    assert "label_values(" in by_name["application"]["query"]
+    assert "jvm_memory_used_bytes" in by_name["application"]["query"]
+    assert by_name["pod"]["type"] == "query"
+    assert by_name["pod"]["hide"] == 2
+    assert by_name["pod"]["multi"] is True
+    assert by_name["pod"]["includeAll"] is True
+    assert "allValue" not in by_name["pod"]
+    assert by_name["application"]["current"]["value"] == "portfolio-app"
     # Section rows + API table + logs at bottom (errors before all logs)
     types = [p["type"] for p in dashboard["panels"]]
     assert "row" in types
@@ -108,14 +115,17 @@ def test_shared_services_dashboard():
     assert dashboard["uid"] == "tech-am-services"
     assert dashboard["title"] == "Technical / Services"
     by_name = {v["name"]: v for v in dashboard["templating"]["list"]}
-    assert by_name["service_pack"]["type"] == "custom"
-    # Registry fixtures include portfolio + logging
-    texts = [o["text"] for o in by_name["service_pack"]["options"]]
-    assert "am-portfolio" in texts
-    assert "am-logging" in texts
-    # Selecting pack encodes metrics application for portfolio
-    pack_by_text = {o["text"]: o["value"] for o in by_name["service_pack"]["options"]}
-    assert pack_by_text["am-portfolio"] == "am-portfolio#am-portfolio#portfolio-app"
+    assert by_name["application"]["type"] == "query"
+    assert by_name["application"]["label"] == "Service"
+    assert "label_values(" in by_name["application"]["query"]
+    assert "service_pack" not in by_name
+    assert by_name["pod"]["multi"] is True
+    # Default current seeded from registry fixture (portfolio)
+    assert by_name["application"]["current"]["value"] == "portfolio-app"
+    # k8s/log panels use discovered $pod, not $app.* prefix
+    cm = path.read_text(encoding="utf-8")
+    assert 'pod=~"$pod"' in cm or "pod=~\\\"$pod\\\"" in cm
+    assert "$app.*" not in cm
     # Functional board has avg latency (not empty-p95-only)
     ids = {r.id for r in results}
     assert "func-am-services" in ids

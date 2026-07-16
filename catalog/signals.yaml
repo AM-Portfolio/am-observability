@@ -1144,7 +1144,7 @@ signals:
         expr_template: >-
           count(
             count by (pod) (
-              container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}
+              container_memory_working_set_bytes{namespace="$namespace",pod=~"$pod",container!="",container!="POD"}
             )
           )
 
@@ -1162,7 +1162,7 @@ signals:
             legend: pods
             expr_template: >-
               count by (image) (
-                container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}
+                container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$pod",container!="",container!="POD"}
               )
 
   k8s_helm_chart:
@@ -1180,12 +1180,12 @@ signals:
             legend: pods
             expr_template: >-
               count by (helm_sh_chart) (
-                up{namespace="$namespace",pod=~"$app.*",helm_sh_chart!=""}
+                up{namespace="$namespace",pod=~"$pod",helm_sh_chart!=""}
               )
               or
               label_replace(
                 count by (label_helm_sh_chart) (
-                  kube_pod_labels{namespace="$namespace",pod=~"$app.*",label_helm_sh_chart!=""}
+                  kube_pod_labels{namespace="$namespace",pod=~"$pod",label_helm_sh_chart!=""}
                 ),
                 "helm_sh_chart", "$1", "label_helm_sh_chart", "(.*)"
               )
@@ -1205,12 +1205,12 @@ signals:
             legend: pods
             expr_template: >-
               count by (app_kubernetes_io_version) (
-                up{namespace="$namespace",pod=~"$app.*",app_kubernetes_io_version!=""}
+                up{namespace="$namespace",pod=~"$pod",app_kubernetes_io_version!=""}
               )
               or
               label_replace(
                 count by (label_app_kubernetes_io_version) (
-                  kube_pod_labels{namespace="$namespace",pod=~"$app.*",label_app_kubernetes_io_version!=""}
+                  kube_pod_labels{namespace="$namespace",pod=~"$pod",label_app_kubernetes_io_version!=""}
                 ),
                 "app_kubernetes_io_version", "$1", "label_app_kubernetes_io_version", "(.*)"
               )
@@ -1224,7 +1224,7 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}[5m]))
+          sum(rate(container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$pod",container!="",container!="POD"}[5m]))
 
   k8s_memory_usage:
     id: k8s_memory_usage
@@ -1235,7 +1235,7 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"})
+          sum(container_memory_working_set_bytes{namespace="$namespace",pod=~"$pod",container!="",container!="POD"})
 
   k8s_restarts:
     id: k8s_restarts
@@ -1248,7 +1248,7 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"})
+          sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"})
 
   service_health_up:
     id: service_health_up
@@ -1260,8 +1260,8 @@ signals:
     adapter_map:
       prometheus:
         expr_template: >-
-          max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
-            or max(up{kubernetes_namespace="$namespace",kubernetes_pod_name=~"$app.*"})
+          max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$pod"})
+            or max(up{kubernetes_namespace="$namespace",kubernetes_pod_name=~"$pod"})
 
   service_health_score:
     id: service_health_score
@@ -1278,15 +1278,15 @@ signals:
             clamp_max(
               100
               - 40 * (1 - clamp_max(
-                  max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
-                    or max(up{namespace="$namespace",pod=~"$app.*"})
+                  max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$pod"})
+                    or max(up{namespace="$namespace",pod=~"$pod"})
                     or vector(0),
                   1))
               - 15 * clamp_max(
-                  ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) > bool 0),
+                  ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"}) or vector(0)) > bool 0),
                   1)
               - 10 * clamp_max(
-                  ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 3),
+                  ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"}) or vector(0)) >= bool 3),
                   1)
               - 15 * clamp_max(
                   (
@@ -1343,15 +1343,15 @@ signals:
               clamp_max(
                 100
                 - 40 * (1 - clamp_max(
-                    max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
-                      or max(up{namespace="$namespace",pod=~"$app.*"})
+                    max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$pod"})
+                      or max(up{namespace="$namespace",pod=~"$pod"})
                       or vector(0),
                     1))
                 - 15 * clamp_max(
-                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) > bool 0),
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"}) or vector(0)) > bool 0),
                     1)
                 - 10 * clamp_max(
-                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 3),
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"}) or vector(0)) >= bool 3),
                     1)
                 - 15 * clamp_max(
                     (
@@ -1401,15 +1401,15 @@ signals:
               clamp_max(
                 100
                 - 40 * (1 - clamp_max(
-                    max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
-                      or max(up{namespace="$namespace",pod=~"$app.*"})
+                    max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$pod"})
+                      or max(up{namespace="$namespace",pod=~"$pod"})
                       or vector(0),
                     1))
                 - 15 * clamp_max(
-                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) > bool 0),
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"}) or vector(0)) > bool 0),
                     1)
                 - 10 * clamp_max(
-                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 3),
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$pod"}) or vector(0)) >= bool 3),
                     1)
                 - 15 * clamp_max(
                     (
@@ -1463,7 +1463,7 @@ signals:
     adapters: [loki]
     adapter_map:
       loki:
-        expr_template: '{namespace="$namespace",pod=~"$app.*"}'
+        expr_template: '{namespace="$namespace",pod=~"$pod"}'
 
   service_error_logs:
     id: service_error_logs
@@ -1474,7 +1474,7 @@ signals:
     adapter_map:
       loki:
         expr_template: >-
-          {namespace="$namespace",pod=~"$app.*"} |~ "(?i)error|exception|fatal|failed"
+          {namespace="$namespace",pod=~"$pod"} |~ "(?i)error|exception|fatal|failed"
 
   trace_latency_p95:
     id: trace_latency_p95
@@ -1485,8 +1485,8 @@ signals:
     adapter_map:
       tempo:
         link_template: >-
-          /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$service}","queryType":"traceql"}]
-        search: 'service.name="$service"'
+          /explore?orgId=1&left=["now-1h","now","tempo",{"query":"{$service=$application}","queryType":"traceql"}]
+        search: 'service.name="$application"'
 
   # ── Platform / infra (server-side; namespace dropdown, not app $application) ──
   platform_ns_pod_count:

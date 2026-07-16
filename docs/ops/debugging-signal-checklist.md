@@ -25,7 +25,7 @@ Use this when deepening observability for AM microservices. The shared dashboard
 1. **App scrape** — publish universal-chart that merges `podAnnotations`; redeploy services with Prometheus scrape annotations.
 2. **Micrometer** — `micrometer-registry-prometheus` on classpath + rebuild/redeploy (e.g. am-portfolio).
 3. **kube-state-metrics** — required for accurate `k8s_restarts` (and later ready/desired replicas).
-4. **Promtail / Tempo labels** — pod prefix (`$app`) and `service.name` must match Service dropdown mapping.
+4. **Promtail / Tempo labels** — pods come from Prometheus join (`$pod` for the selected `$application`); Tempo `service.name` should match the Micrometer `application` label.
 
 ## Next tier (add for Amazon-depth debugging)
 

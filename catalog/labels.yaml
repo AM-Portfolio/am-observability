@@ -17,11 +17,10 @@ tempo:
   service_attribute: service.name
 
 variables:
-  # Substituted at generate time from the service manifest
-  service: "$service"
+  # Shared Technical dashboard discovers these from Prometheus at view time.
+  service: "$service"           # legacy / Plane C metadata
   namespace: "$namespace"
-  app: "$app"                   # = k8s_app_label (Loki / pod selector)
-  application: "$application"   # = metrics_application or service (PromQL)
+  application: "$application"   # Service dropdown = label_values(..., application)
+  pod: "$pod"                   # joined from same series as application (k8s + Loki)
+  app: "$app"                   # legacy k8s_app_label (manifest metadata only)
   env: "$env"                   # derived from namespace suffix (am-apps-preprod → preprod)
-  # Platform / infra dashboards (templates/platform)
-  pod: "$pod"                   # pod regex for exporter targets (e.g. redis.*)
