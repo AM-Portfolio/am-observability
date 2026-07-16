@@ -46,6 +46,8 @@ jobs:
 
       - name: Resolve version
         id: ver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
@@ -60,8 +62,13 @@ jobs:
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
             echo "create_tag=true" >> "$GITHUB_OUTPUT"
           else
+            # Prefer recovering the tip tag when a prior run left a tag but no Release
+            # (failed softprops uploads orphan tags and break obs-upgrade downloads).
             LATEST="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)"
-            if [[ -z "$LATEST" ]]; then
+            if [[ -n "$LATEST" ]] && ! gh release view "$LATEST" >/dev/null 2>&1; then
+              VERSION="$LATEST"
+              echo "Reusing orphaned tip tag $VERSION (tag exists, no release)"
+            elif [[ -z "$LATEST" ]]; then
               VERSION="v0.1.0"
             else
               IFS='.' read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
@@ -101,23 +108,70 @@ jobs:
           test -f dist/release/compat.json
           test -f dist/release/schema/service-observability.schema.json
 
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v2
+      # softprops/action-gh-release was returning GitHub Unicorn HTML and never
+      # creating the Release object (tags v0.4.4/v0.4.5 orphaned). Use gh CLI.
+      - name: Create GitHub release and upload assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.ver.outputs.version }}
-          target_commitish: ${{ github.sha }}
-          files: |
-            dist/release/grafana-dashboards-${{ steps.ver.outputs.version }}.zip
-            dist/release/grafana-dashboards-${{ steps.ver.outputs.version }}.zip.sha256
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.ver.outputs.version }}"
+          ASSETS=(
+            "dist/release/grafana-dashboards-${VERSION}.zip"
+            "dist/release/grafana-dashboards-${VERSION}.zip.sha256"
             dist/release/catalog-index.json
             dist/release/compat.json
             dist/release/schema/service-observability.schema.json
-          fail_on_unmatched_files: true
-          generate_release_notes: true
-          make_latest: true
-          overwrite_files: true
+          )
+          for f in "${ASSETS[@]}"; do
+            test -f "$f"
+          done
+
+          # Tag may take a moment to be visible to the Releases API
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if git ls-remote --exit-code --tags origin "refs/tags/${VERSION}" >/dev/null 2>&1; then
+              break
+            fi
+            echo "Waiting for tag ${VERSION} on origin... (${i})"
+            sleep 2
+          done
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists — uploading assets (clobber)"
+            CREATE=false
+          else
+            echo "Creating release ${VERSION}"
+            CREATE=true
+          fi
+
+          # Retry: GitHub occasionally returns Unicorn/5xx mid-upload; softprops
+          # treated that as fatal and left tags without Releases.
+          for attempt in 1 2 3; do
+            if [[ "$CREATE" == "true" ]]; then
+              if gh release create "$VERSION" "${ASSETS[@]}" \
+                --verify-tag \
+                --generate-notes \
+                --title "am-observability ${VERSION}" \
+                --latest; then
+                break
+              fi
+            else
+              if gh release upload "$VERSION" "${ASSETS[@]}" --clobber; then
+                break
+              fi
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "Release publish failed after ${attempt} attempts"
+              exit 1
+            fi
+            # If create partially succeeded, switch to upload on retry
+            if gh release view "$VERSION" >/dev/null 2>&1; then
+              CREATE=false
+            fi
+            sleep $((attempt * 10))
+          done
+          gh release view "$VERSION"
 
       - name: Dispatch am-infra to apply ConfigMaps (no Grafana restart)
         env:
