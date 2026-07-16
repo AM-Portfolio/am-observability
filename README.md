@@ -40,14 +40,14 @@ npm run ci         # validate && test
 ### 3. Generate dashboards locally
 
 ```bash
-npm run generate:portfolio   # → dist/grafana/tech-am-portfolio.yaml
+npm run generate             # → dist/grafana/tech-am-services.yaml (shared Service dropdown)
+npm run generate:portfolio   # per-service ConfigMap (optional / debug)
 npm run generate:logging     # fixture until am-logging/observability.yaml exists
-npm run generate             # all registry entries with enabled: true
 ```
 
 Inspect output:
 
-- `dist/grafana/*.yaml` — ConfigMaps to pin into am-infra
+- `dist/grafana/tech-am-services.yaml` — shared technical dashboard (Namespace + Service dropdowns)
 - `dist/report.json` — pass/fail + warnings
 
 ### 4. Full local preflight

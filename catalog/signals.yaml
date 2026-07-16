@@ -4,108 +4,150 @@ kind: SignalCatalog
 # Spring/Micrometer HTTP+JVM need micrometer-registry-prometheus on the service.
 signals:
   # ── HTTP / API ──────────────────────────────────────────────
+  # $method / $uri are Grafana dropdowns (All = .*) so golden-signal
+  # charts can drill from "sum of all APIs" → one endpoint.
   http_request_rate:
     id: http_request_rate
     kind: metric
-    description: HTTP server request rate (all APIs)
+    description: Total HTTP request rate (sum of all matching method/uri filters). Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
-        legend: "all"
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
+        legend: "total (sum)"
 
   http_requests_by_status:
     id: http_requests_by_status
     kind: metric
-    description: HTTP request rate broken down by status code (200/4xx/5xx)
+    description: HTTP request rate by status code (one line per status). Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum by (status) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
+          sum by (status) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
         legend: "{{status}}"
 
   http_requests_2xx:
     id: http_requests_2xx
     kind: metric
-    description: Successful HTTP responses (2xx)
+    description: Successful 2xx rate — one line per API (method+uri). Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"2.."}[5m]))
+          topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"2.."}[5m])))
+        legend: "{{method}} {{uri}}"
 
   http_requests_4xx:
     id: http_requests_4xx
     kind: metric
-    description: Client error HTTP responses (4xx)
+    description: Client 4xx rate — one line per API. Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"4.."}[5m]))
+          topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"4.."}[5m])))
+        legend: "{{method}} {{uri}}"
 
   http_error_rate:
     id: http_error_rate
     kind: metric
-    description: HTTP 5xx request rate
+    description: Server 5xx rate — one line per API. Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m]))
+          topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[5m])))
+        legend: "{{method}} {{uri}}"
+
+  http_error_rate_total:
+    id: http_error_rate_total
+    kind: metric
+    description: Total 5xx rate (sum of matching APIs). Unit = requests/sec.
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[5m]))
+        legend: "5xx total (sum)"
+
+  http_latency_p50:
+    id: http_latency_p50
+    kind: metric
+    description: HTTP request latency p50 (filtered by method/uri)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])) by (le))
+        legend: "p50"
+
+  http_latency_p75:
+    id: http_latency_p75
+    kind: metric
+    description: HTTP request latency p75 (filtered by method/uri)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          histogram_quantile(0.75, sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])) by (le))
+        legend: "p75"
 
   http_latency_p95:
     id: http_latency_p95
     kind: metric
-    description: HTTP request latency p95 (all APIs)
+    description: HTTP request latency p95 (filtered by method/uri)
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace"}[5m])) by (le))
+          histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])) by (le))
+        legend: "p95"
 
   http_latency_p95_by_uri:
     id: http_latency_p95_by_uri
     kind: metric
-    description: HTTP p95 latency by URI (top endpoints)
+    description: HTTP p95 latency — one line per URI (top endpoints). Unit = seconds.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          topk(8, histogram_quantile(0.95, sum by (uri, le) (rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",uri!~".*actuator.*"}[5m]))))
-        legend: "{{uri}}"
+          topk(12, histogram_quantile(0.95, sum by (method, uri, le) (rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))))
+        legend: "{{method}} {{uri}}"
 
   http_requests_by_uri:
     id: http_requests_by_uri
     kind: metric
-    description: HTTP request rate by API path (excludes actuator)
+    description: Request rate — one line per API (method+uri). Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          topk(10, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",uri!~".*actuator.*"}[5m])))
+          topk(15, sum by (method, uri) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])))
         legend: "{{method}} {{uri}}"
 
   http_requests_by_outcome:
     id: http_requests_by_outcome
     kind: metric
-    description: HTTP rate by Micrometer outcome (SUCCESS / CLIENT_ERROR / SERVER_ERROR)
+    description: HTTP rate by Micrometer outcome (one line per outcome). Unit = requests/sec.
     panel_type: timeseries
     adapters: [prometheus]
     adapter_map:
       prometheus:
         expr_template: >-
-          sum by (outcome) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m]))
+          sum by (outcome) (rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m]))
         legend: "{{outcome}}"
 
   http_client_request_rate:
@@ -120,6 +162,216 @@ signals:
         expr_template: >-
           sum by (client_name, uri, status) (rate(http_client_requests_seconds_count{application="$application"}[5m]))
         legend: "{{client_name}} {{status}}"
+
+  http_api_performance_table:
+    id: http_api_performance_table
+    kind: metric
+    description: >-
+      Per-API table (method+uri): status aggregates + avg/p50/p75/p90/p95 latency
+    panel_type: table
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        queries:
+          - refId: Total
+            legend: Total
+            expr_template: >-
+              sum by (api) (
+                label_join(
+                  sum by (method, uri) (
+                    increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                  ),
+                  "api", " ", "method", "uri"
+                )
+              )
+          - refId: S2xx
+            legend: 2xx
+            expr_template: >-
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"2.."}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+              or
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                ) * 0
+              )
+          - refId: S4xx
+            legend: 4xx
+            expr_template: >-
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"4.."}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+              or
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                ) * 0
+              )
+          - refId: S5xx
+            legend: 5xx
+            expr_template: >-
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+              or
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                ) * 0
+              )
+          - refId: Fail
+            legend: Fail
+            expr_template: >-
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"[45].."}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+              or
+              (
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                ) * 0
+              )
+          - refId: Avg
+            legend: avg
+            expr_template: >-
+              sum by (api) (
+                label_join(
+                  sum by (method, uri) (
+                    increase(http_server_requests_seconds_sum{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                  ),
+                  "api", " ", "method", "uri"
+                )
+              )
+              /
+              clamp_min(
+                sum by (api) (
+                  label_join(
+                    sum by (method, uri) (
+                      increase(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                ),
+                1
+              )
+          - refId: P50
+            legend: p50
+            expr_template: >-
+              histogram_quantile(
+                0.50,
+                sum by (api, le) (
+                  label_join(
+                    sum by (method, uri, le) (
+                      rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+          - refId: P75
+            legend: p75
+            expr_template: >-
+              histogram_quantile(
+                0.75,
+                sum by (api, le) (
+                  label_join(
+                    sum by (method, uri, le) (
+                      rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+          - refId: P90
+            legend: p90
+            expr_template: >-
+              histogram_quantile(
+                0.90,
+                sum by (api, le) (
+                  label_join(
+                    sum by (method, uri, le) (
+                      rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+          - refId: P95
+            legend: p95
+            expr_template: >-
+              histogram_quantile(
+                0.95,
+                sum by (api, le) (
+                  label_join(
+                    sum by (method, uri, le) (
+                      rate(http_server_requests_seconds_bucket{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[$__range])
+                    ),
+                    "api", " ", "method", "uri"
+                  )
+                )
+              )
+
+  http_error_ratio:
+    id: http_error_ratio
+    kind: metric
+    description: HTTP 5xx error ratio (of requests matching method/uri filter)
+    panel_type: timeseries
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*",status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",method=~"$method",uri=~"$uri",uri!~".*actuator.*"}[5m])), 1e-9)
 
   # ── JVM / process (OOM / CPU pressure) ──────────────────────
   jvm_heap_used:
@@ -178,6 +430,31 @@ signals:
       prometheus:
         expr_template: >-
           jvm_threads_live_threads{application="$application"}
+
+  jvm_heap_used_ratio:
+    id: jvm_heap_used_ratio
+    kind: metric
+    description: JVM heap used / max ratio (0-1) for saturation gauge
+    panel_type: gauge
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(jvm_memory_used_bytes{application="$application",area="heap"})
+          /
+          clamp_min(sum(jvm_memory_max_bytes{application="$application",area="heap"}), 1)
+
+  process_uptime:
+    id: process_uptime
+    kind: metric
+    description: Process uptime seconds
+    panel_type: stat
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          time() - process_start_time_seconds{application="$application"}
 
   process_cpu_usage:
     id: process_cpu_usage
@@ -263,6 +540,34 @@ signals:
         expr_template: >-
           mongodb_driver_pool_checkedout{application="$application"}
 
+  mongo_commands_p95:
+    id: mongo_commands_p95
+    kind: metric
+    description: MongoDB driver command latency p95
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          histogram_quantile(
+            0.95,
+            sum by (command, le) (rate(mongodb_driver_commands_seconds_bucket{application="$application"}[5m]))
+          )
+        legend: "{{command}}"
+
+  mongo_pool_size:
+    id: mongo_pool_size
+    kind: metric
+    description: MongoDB connection pool size
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          mongodb_driver_pool_size{application="$application"}
+
   redis_commands:
     id: redis_commands
     kind: metric
@@ -274,6 +579,21 @@ signals:
       prometheus:
         expr_template: >-
           sum(rate(lettuce_command_completion_seconds_count{application="$application"}[5m]))
+
+  redis_commands_p95:
+    id: redis_commands_p95
+    kind: metric
+    description: Redis/Lettuce command latency p95
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(lettuce_command_completion_seconds_bucket{application="$application"}[5m]))
+          )
 
   kafka_listener:
     id: kafka_listener
@@ -301,7 +621,119 @@ signals:
           sum by (name) (rate(spring_kafka_listener_seconds_count{application="$application",result="failure"}[5m]))
         legend: "{{name}}"
 
+  kafka_listener_p95:
+    id: kafka_listener_p95
+    kind: metric
+    description: Spring Kafka listener duration p95
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          histogram_quantile(
+            0.95,
+            sum by (name, le) (rate(spring_kafka_listener_seconds_bucket{application="$application"}[5m]))
+          )
+        legend: "{{name}}"
+
+  kafka_consumer_lag:
+    id: kafka_consumer_lag
+    kind: metric
+    description: Kafka consumer records lag (if binder exposes it)
+    panel_type: timeseries
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum by (topic) (kafka_consumer_fetch_manager_records_lag{application="$application"})
+            or sum by (topic) (spring_kafka_listener_lag{application="$application"})
+        legend: "{{topic}}"
+
   # ── Kubernetes ──────────────────────────────────────────────
+  k8s_pod_count:
+    id: k8s_pod_count
+    kind: metric
+    description: Running pod count for this service (cAdvisor)
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          count(
+            count by (pod) (
+              container_memory_working_set_bytes{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}
+            )
+          )
+
+  k8s_image_version:
+    id: k8s_image_version
+    kind: metric
+    description: Container image(s) currently running
+    panel_type: table
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        join_field: image
+        queries:
+          - refId: Image
+            legend: pods
+            expr_template: >-
+              count by (image) (
+                container_cpu_usage_seconds_total{namespace="$namespace",pod=~"$app.*",container!="",container!="POD"}
+              )
+
+  k8s_helm_chart:
+    id: k8s_helm_chart
+    kind: metric
+    description: Helm chart version label on pods (helm.sh/chart)
+    panel_type: table
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        join_field: helm_sh_chart
+        queries:
+          - refId: Chart
+            legend: pods
+            expr_template: >-
+              count by (helm_sh_chart) (
+                up{namespace="$namespace",pod=~"$app.*",helm_sh_chart!=""}
+              )
+              or
+              label_replace(
+                count by (label_helm_sh_chart) (
+                  kube_pod_labels{namespace="$namespace",pod=~"$app.*",label_helm_sh_chart!=""}
+                ),
+                "helm_sh_chart", "$1", "label_helm_sh_chart", "(.*)"
+              )
+
+  k8s_app_version:
+    id: k8s_app_version
+    kind: metric
+    description: App version label on pods (app.kubernetes.io/version)
+    panel_type: table
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        join_field: app_kubernetes_io_version
+        queries:
+          - refId: Version
+            legend: pods
+            expr_template: >-
+              count by (app_kubernetes_io_version) (
+                up{namespace="$namespace",pod=~"$app.*",app_kubernetes_io_version!=""}
+              )
+              or
+              label_replace(
+                count by (label_app_kubernetes_io_version) (
+                  kube_pod_labels{namespace="$namespace",pod=~"$app.*",label_app_kubernetes_io_version!=""}
+                ),
+                "app_kubernetes_io_version", "$1", "label_app_kubernetes_io_version", "(.*)"
+              )
+
   k8s_cpu_usage:
     id: k8s_cpu_usage
     kind: metric
@@ -349,6 +781,197 @@ signals:
         expr_template: >-
           max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
             or max(up{kubernetes_namespace="$namespace",kubernetes_pod_name=~"$app.*"})
+
+  service_health_score:
+    id: service_health_score
+    kind: metric
+    description: >-
+      Quick-decision health score 0–100 (scrape, restarts, 5xx ratio, heap).
+      GOOD≥80, WATCH 50–79, ACT <50.
+    panel_type: gauge
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          clamp_min(
+            clamp_max(
+              100
+              - 40 * (1 - clamp_max(
+                  max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
+                    or max(up{namespace="$namespace",pod=~"$app.*"})
+                    or vector(0),
+                  1))
+              - 15 * clamp_max(
+                  ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 1),
+                  1)
+              - 10 * clamp_max(
+                  ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 3),
+                  1)
+              - 15 * clamp_max(
+                  (
+                    (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m])) or vector(0))
+                    /
+                    clamp_min(
+                      (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m])) or vector(0)),
+                      1e-9
+                    )
+                    >= bool 0.01
+                  ),
+                  1)
+              - 15 * clamp_max(
+                  (
+                    (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m])) or vector(0))
+                    /
+                    clamp_min(
+                      (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m])) or vector(0)),
+                      1e-9
+                    )
+                    >= bool 0.05
+                  ),
+                  1)
+              - 10 * clamp_max(
+                  (
+                    (sum(jvm_memory_used_bytes{application="$application",area="heap"}) or vector(0))
+                    /
+                    clamp_min((sum(jvm_memory_max_bytes{application="$application",area="heap"}) or vector(1)), 1)
+                    >= bool 0.7
+                  ),
+                  1)
+              - 10 * clamp_max(
+                  (
+                    (sum(jvm_memory_used_bytes{application="$application",area="heap"}) or vector(0))
+                    /
+                    clamp_min((sum(jvm_memory_max_bytes{application="$application",area="heap"}) or vector(1)), 1)
+                    >= bool 0.9
+                  ),
+                  1),
+              100),
+            0)
+
+  service_health_status:
+    id: service_health_status
+    kind: metric
+    description: Decision band from health score — 2=GOOD, 1=WATCH, 0=ACT
+    panel_type: stat
+    adapters: [prometheus]
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          (
+            clamp_min(
+              clamp_max(
+                100
+                - 40 * (1 - clamp_max(
+                    max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
+                      or max(up{namespace="$namespace",pod=~"$app.*"})
+                      or vector(0),
+                    1))
+                - 15 * clamp_max(
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 1),
+                    1)
+                - 10 * clamp_max(
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 3),
+                    1)
+                - 15 * clamp_max(
+                    (
+                      (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m])) or vector(0))
+                      /
+                      clamp_min(
+                        (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m])) or vector(0)),
+                        1e-9
+                      )
+                      >= bool 0.01
+                    ),
+                    1)
+                - 15 * clamp_max(
+                    (
+                      (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m])) or vector(0))
+                      /
+                      clamp_min(
+                        (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m])) or vector(0)),
+                        1e-9
+                      )
+                      >= bool 0.05
+                    ),
+                    1)
+                - 10 * clamp_max(
+                    (
+                      (sum(jvm_memory_used_bytes{application="$application",area="heap"}) or vector(0))
+                      /
+                      clamp_min((sum(jvm_memory_max_bytes{application="$application",area="heap"}) or vector(1)), 1)
+                      >= bool 0.7
+                    ),
+                    1)
+                - 10 * clamp_max(
+                    (
+                      (sum(jvm_memory_used_bytes{application="$application",area="heap"}) or vector(0))
+                      /
+                      clamp_min((sum(jvm_memory_max_bytes{application="$application",area="heap"}) or vector(1)), 1)
+                      >= bool 0.9
+                    ),
+                    1),
+                100),
+              0)
+            >= bool 80
+          )
+          +
+          (
+            clamp_min(
+              clamp_max(
+                100
+                - 40 * (1 - clamp_max(
+                    max(up{job="kubernetes-pods",namespace="$namespace",pod=~"$app.*"})
+                      or max(up{namespace="$namespace",pod=~"$app.*"})
+                      or vector(0),
+                    1))
+                - 15 * clamp_max(
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 1),
+                    1)
+                - 10 * clamp_max(
+                    ((sum(kube_pod_container_status_restarts_total{namespace="$namespace",pod=~"$app.*"}) or vector(0)) >= bool 3),
+                    1)
+                - 15 * clamp_max(
+                    (
+                      (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m])) or vector(0))
+                      /
+                      clamp_min(
+                        (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m])) or vector(0)),
+                        1e-9
+                      )
+                      >= bool 0.01
+                    ),
+                    1)
+                - 15 * clamp_max(
+                    (
+                      (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace",status=~"5.."}[5m])) or vector(0))
+                      /
+                      clamp_min(
+                        (sum(rate(http_server_requests_seconds_count{application="$application",namespace="$namespace"}[5m])) or vector(0)),
+                        1e-9
+                      )
+                      >= bool 0.05
+                    ),
+                    1)
+                - 10 * clamp_max(
+                    (
+                      (sum(jvm_memory_used_bytes{application="$application",area="heap"}) or vector(0))
+                      /
+                      clamp_min((sum(jvm_memory_max_bytes{application="$application",area="heap"}) or vector(1)), 1)
+                      >= bool 0.7
+                    ),
+                    1)
+                - 10 * clamp_max(
+                    (
+                      (sum(jvm_memory_used_bytes{application="$application",area="heap"}) or vector(0))
+                      /
+                      clamp_min((sum(jvm_memory_max_bytes{application="$application",area="heap"}) or vector(1)), 1)
+                      >= bool 0.9
+                    ),
+                    1),
+                100),
+              0)
+            >= bool 50
+          )
 
   # ── Logs / traces ───────────────────────────────────────────
   service_logs_all:

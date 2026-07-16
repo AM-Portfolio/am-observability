@@ -5,7 +5,9 @@ from __future__ import annotations
 from string import Template
 
 # These become Grafana template variables (visible dropdowns / text boxes).
-GRAFANA_TEMPLATE_VARS = frozenset({"namespace", "service", "app", "application", "env"})
+GRAFANA_TEMPLATE_VARS = frozenset(
+    {"namespace", "service", "app", "application", "env", "uri", "method"}
+)
 
 
 def subst_for_grafana(template: str, vars_: dict[str, str]) -> str:

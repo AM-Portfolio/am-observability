@@ -27,6 +27,10 @@ def adapt(ir: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], list[str]]:
     adapted_panels: list[dict[str, Any]] = []
 
     for panel in ir.get("panels") or []:
+        if panel.get("type") in ("row", "text") or panel.get("kind") in ("row", "text"):
+            adapted_panels.append(panel)
+            continue
+
         signal_id = panel["signal"]
         signal = ctx.signals[signal_id]
         kind = signal["kind"]
@@ -57,4 +61,5 @@ def adapt(ir: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], list[str]]:
 
     out = dict(ir)
     out["panels"] = adapted_panels
+    out["bindings_inputs"] = ctx.bindings.get("inputs") or {}
     return out, warnings

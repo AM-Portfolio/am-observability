@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from am_obs.loader import load_context
-from am_obs.pipeline import generate, generate_one
+from am_obs.pipeline import generate, generate_one, generate_shared
 from am_obs.validate import validate_all, validate_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,11 +29,64 @@ def test_metrics_application_as_grafana_var():
                 exprs.append(t["expr"])
     joined = "\n".join(exprs)
     assert "$application" in joined or "${application}" in joined
+    assert "$uri" in joined or 'uri=~"$uri"' in joined
     assert 'application="portfolio-app"' not in joined
-    # Visible filter variables present
-    names = {v["name"] for v in dashboard["templating"]["list"]}
-    assert names >= {"namespace", "service", "app", "application"}
-    assert all(v.get("hide", 0) == 0 for v in dashboard["templating"]["list"])
+    # Service dropdown + derived vars (app/application hidden)
+    by_name = {v["name"]: v for v in dashboard["templating"]["list"]}
+    assert set(by_name) >= {"namespace", "service_pack", "service", "app", "application", "method", "uri"}
+    assert by_name["uri"]["type"] == "query"
+    assert by_name["uri"]["includeAll"] is True
+    assert by_name["method"]["includeAll"] is True
+    assert by_name["uri"]["label"] == "API path"
+    assert by_name["namespace"]["type"] == "custom"
+    assert by_name["service_pack"]["type"] == "custom"
+    assert by_name["service_pack"]["label"] == "Service"
+    assert by_name["application"]["hide"] == 2
+    assert "portfolio-app" in by_name["service_pack"]["current"]["value"]
+    # Section rows + API table + logs at bottom (errors before all logs)
+    types = [p["type"] for p in dashboard["panels"]]
+    assert "row" in types
+    assert "table" in types
+    assert "gauge" in types
+    assert "text" in types
+    # Decision strip present
+    titles = [p["title"] for p in dashboard["panels"]]
+    assert "Health score" in titles
+    assert "Decision" in titles
+    assert any("Action checklist" == t or "Action checklist" in t for t in titles)
+    assert "Helm chart (deploy)" in titles
+    log_titles = [p["title"] for p in dashboard["panels"] if p["type"] == "logs"]
+    assert log_titles == ["Error logs", "Logs"]
+    # API table includes p75
+    api = next(p for p in dashboard["panels"] if p["type"] == "table" and "API" in p["title"])
+    legends = [t.get("refId") for t in api.get("targets") or []]
+    assert "P75" in legends
+    assert "S5xx" in legends
+
+
+def test_shared_services_dashboard():
+    """Default generate emits one Service-dropdown dashboard for the registry."""
+    rc = generate()
+    assert rc == 0
+    report = json.loads((ROOT / "dist" / "report.json").read_text(encoding="utf-8"))
+    assert "tech-am-services" in report["passed"]
+    path = ROOT / "dist" / "grafana" / "tech-am-services.yaml"
+    assert path.is_file()
+    ctx = load_context()
+    entries = list(ctx.registry.get("services") or [])
+    dashboard, out, results = generate_shared(ctx, entries=entries, continue_on_error=True)
+    assert dashboard is not None and out is not None
+    assert dashboard["uid"] == "tech-am-services"
+    assert dashboard["title"] == "Technical / Services"
+    by_name = {v["name"]: v for v in dashboard["templating"]["list"]}
+    assert by_name["service_pack"]["type"] == "custom"
+    # Registry fixtures include portfolio + logging
+    texts = [o["text"] for o in by_name["service_pack"]["options"]]
+    assert "am-portfolio" in texts
+    assert "am-logging" in texts
+    # Selecting pack encodes metrics application for portfolio
+    pack_by_text = {o["text"]: o["value"] for o in by_name["service_pack"]["options"]}
+    assert pack_by_text["am-portfolio"] == "am-portfolio#am-portfolio#portfolio-app"
 
 
 def test_validate_platform_ok():
@@ -55,10 +108,15 @@ def test_compose_intersection_tier_b_no_red():
     assert err is None
     assert path is not None
     assert dashboard is not None
-    titles = [p["title"] for p in dashboard["panels"]]
-    joined = " ".join(titles).lower()
+    # Ignore row titles / markdown blurbs — assert no HTTP/JVM *metric* panels
+    metric_titles = [
+        p["title"].lower()
+        for p in dashboard["panels"]
+        if p["type"] in ("timeseries", "stat", "gauge", "table")
+    ]
+    joined = " ".join(metric_titles)
     assert "request rate" not in joined
-    assert "jvm" not in joined
+    assert "heap" not in joined
     assert any(p["type"] == "logs" for p in dashboard["panels"])
 
 

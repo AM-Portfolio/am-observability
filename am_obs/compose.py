@@ -33,25 +33,108 @@ def _adapter_supports(ctx: Context, adapter: str, kind: str) -> bool:
     return kind in kinds
 
 
-def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], list[str]]:
-    """Return (ir, warnings)."""
-    warnings: list[str] = []
-    service = manifest["service"]
-    namespace = manifest["namespace"]
-    app = manifest["k8s_app_label"]
-    # Micrometer/Spring application label — optional override when != service id
-    application = manifest.get("metrics_application") or service
-    env = env_from_namespace(namespace)
-    uses = set((manifest.get("signals") or {}).get("uses") or [])
-
+def _panel_candidates(
+    ctx: Context,
+    *,
+    uses: set[str] | None,
+    warnings: list[str],
+) -> list[dict[str, Any]]:
+    """Build laid-out panel IR from the technical template."""
     panels_out: list[dict[str, Any]] = []
     cursor_y = 0
     cursor_x = 0
     row_height = 0
+    pending_row: dict[str, Any] | None = None
+    pending_texts: list[dict[str, Any]] = []
+
+    def _place(width: int, height: int) -> dict[str, int]:
+        nonlocal cursor_y, cursor_x, row_height
+        if cursor_x + width > 24:
+            cursor_x = 0
+            cursor_y += row_height
+            row_height = 0
+        pos = {"h": height, "w": width, "x": cursor_x, "y": cursor_y}
+        cursor_x += width
+        row_height = max(row_height, height)
+        return pos
+
+    def _flush_row() -> None:
+        nonlocal cursor_y, cursor_x, row_height, pending_row
+        if pending_row is None:
+            return
+        if cursor_x != 0:
+            cursor_x = 0
+            cursor_y += row_height
+            row_height = 0
+        row = dict(pending_row)
+        row["gridPos"] = {"h": 1, "w": 24, "x": 0, "y": cursor_y}
+        panels_out.append(row)
+        cursor_y += 1
+        cursor_x = 0
+        row_height = 0
+        pending_row = None
+
+    def _flush_texts() -> None:
+        nonlocal pending_texts
+        for raw in pending_texts:
+            panels_out.append(
+                {
+                    "id": raw["id"],
+                    "title": raw.get("title") or "",
+                    "type": "text",
+                    "kind": "text",
+                    "content": raw.get("content") or "",
+                    "gridPos": _place(int(raw["width"]), int(raw["height"])),
+                }
+            )
+        pending_texts = []
+
+    def _emit_text_now(panel: dict[str, Any]) -> None:
+        panels_out.append(
+            {
+                "id": panel.get("id") or f"text-{cursor_y}",
+                "title": panel.get("title") or "",
+                "type": "text",
+                "kind": "text",
+                "content": panel.get("content") or "",
+                "gridPos": _place(
+                    int(panel.get("width") or 24),
+                    int(panel.get("height") or 3),
+                ),
+            }
+        )
 
     for panel in ctx.technical_template.get("panels") or []:
+        ptype = panel.get("type") or ""
+        if ptype == "row":
+            pending_row = {
+                "id": panel.get("id") or f"row-{panel.get('title') or cursor_y}",
+                "title": panel.get("title") or "Section",
+                "type": "row",
+                "kind": "row",
+                "collapsed": bool(panel.get("collapsed") or False),
+            }
+            pending_texts = []
+            continue
+
+        if ptype == "text":
+            raw = {
+                "id": panel.get("id") or f"text-{cursor_y}",
+                "title": panel.get("title") or "",
+                "content": panel.get("content") or "",
+                "width": int(panel.get("width") or 24),
+                "height": int(panel.get("height") or 3),
+            }
+            if pending_row is not None:
+                # Hold until a signal in this section is accepted
+                pending_texts.append(raw)
+            else:
+                # Section already open — emit immediately (e.g. action checklist)
+                _emit_text_now(panel)
+            continue
+
         signal_id = panel["signal"]
-        if signal_id not in uses:
+        if uses is not None and signal_id not in uses:
             continue
 
         signal = ctx.signals.get(signal_id)
@@ -71,12 +154,8 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
             warnings.append(f"omit {signal_id}: signal does not list adapter {adapter}")
             continue
 
-        width = int(panel.get("width") or 12)
-        height = int(panel.get("height") or 8)
-        if cursor_x + width > 24:
-            cursor_x = 0
-            cursor_y += row_height
-            row_height = 0
+        _flush_row()
+        _flush_texts()
 
         panels_out.append(
             {
@@ -86,11 +165,54 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
                 "kind": kind,
                 "type": panel.get("type") or signal.get("panel_type") or "timeseries",
                 "adapter": adapter,
-                "gridPos": {"h": height, "w": width, "x": cursor_x, "y": cursor_y},
+                "gridPos": _place(
+                    int(panel.get("width") or 12),
+                    int(panel.get("height") or 8),
+                ),
+                **{
+                    k: panel[k]
+                    for k in (
+                        "theme",
+                        "color",
+                        "unit",
+                        "decimals",
+                        "fill_opacity",
+                        "min",
+                        "max",
+                        "mappings",
+                        "palette",
+                        "legend",
+                    )
+                    if k in panel
+                },
             }
         )
-        cursor_x += width
-        row_height = max(row_height, height)
+
+    return panels_out
+
+
+def target_from_manifest(manifest: dict[str, Any]) -> dict[str, str]:
+    """Service dropdown row: service id + pod prefix + metrics application label."""
+    service = str(manifest["service"])
+    return {
+        "service": service,
+        "app": str(manifest["k8s_app_label"]),
+        "application": str(manifest.get("metrics_application") or service),
+        "namespace": str(manifest["namespace"]),
+    }
+
+
+def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], list[str]]:
+    """Per-service dashboard IR (template ∩ manifest.signals.uses)."""
+    warnings: list[str] = []
+    service = manifest["service"]
+    namespace = manifest["namespace"]
+    app = manifest["k8s_app_label"]
+    application = manifest.get("metrics_application") or service
+    env = env_from_namespace(namespace)
+    uses = set((manifest.get("signals") or {}).get("uses") or [])
+
+    panels_out = _panel_candidates(ctx, uses=uses, warnings=warnings)
 
     title_tpl = ctx.technical_template.get("title") or "Technical / {{ service }}"
     title = title_tpl.replace("{{ service }}", service).replace("{{service}}", service)
@@ -110,6 +232,7 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
         "env": env,
         "tags": ["am", "technical", service, env],
         "panels": panels_out,
+        "service_targets": [target_from_manifest(manifest)],
         "vars": {
             "service": service,
             "namespace": namespace,
@@ -122,6 +245,50 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
     functional = manifest.get("functional") or []
     if functional:
         warnings.append("functional KPIs requested but Phase 1 publisher skips func-* dashboards")
-    # Explicit skip when empty — functional template is loaded but unused.
 
+    return ir, warnings
+
+
+def compose_shared(
+    targets: list[dict[str, str]],
+    ctx: Context,
+    *,
+    default: dict[str, str] | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    """One technical dashboard for all registry services (Service dropdown)."""
+    warnings: list[str] = []
+    if not targets:
+        return {}, ["no service targets for shared dashboard"]
+
+    default = default or targets[0]
+    namespace = default["namespace"]
+    env = env_from_namespace(namespace)
+
+    # Full technical template — filter at Grafana via $service/$app/$application
+    panels_out = _panel_candidates(ctx, uses=None, warnings=warnings)
+
+    ir = {
+        "apiVersion": "am.obs/v1",
+        "kind": "Dashboard",
+        "uid": "tech-am-services",
+        "title": "Technical / Services",
+        "folder": ctx.technical_template.get("folder")
+        or ((ctx.bindings.get("outputs") or {}).get("dashboards") or {}).get("folder")
+        or "AM / Technical",
+        "service": default["service"],
+        "namespace": namespace,
+        "app": default["app"],
+        "application": default["application"],
+        "env": env,
+        "tags": ["am", "technical", "shared", env],
+        "panels": panels_out,
+        "service_targets": targets,
+        "vars": {
+            "service": default["service"],
+            "namespace": namespace,
+            "app": default["app"],
+            "application": default["application"],
+            "env": env,
+        },
+    }
     return ir, warnings

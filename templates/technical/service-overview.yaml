@@ -3,230 +3,659 @@ kind: DashboardTemplate
 id: service-overview
 title: "Technical / {{ service }}"
 folder: "AM / Technical"
-# Signal refs only — no PromQL/LogQL here.
+# SRE / Amazon-style: KPI → Golden Signals → API SLO → deps → JVM → K8s → evidence
 
 panels:
-  # ── Logs first (works without app scrape) ──
-  - id: service_logs_all
-    signal: service_logs_all
-    title: Logs
-    type: logs
-    width: 24
-    height: 9
+  # ── 0. Quick decision ──────────────────────────────────────
+  - id: row_decision
+    type: row
+    title: "0 · Quick decision"
 
-  - id: service_error_logs
-    signal: service_error_logs
-    title: Error logs
-    type: logs
+  - id: text_decision
+    type: text
+    title: ""
     width: 24
-    height: 7
+    height: 3
+    content: |
+      **How to read this strip:** Health score combines scrape up, restarts, HTTP 5xx ratio, and JVM heap.
+      **GOOD ≥ 80** · **WATCH 50–79** · **ACT &lt; 50**. Use Method + API path filters (top) to drill latency/errors; **All** = sum across APIs.
 
-  # ── HTTP / API ──
+  - id: service_health_score
+    signal: service_health_score
+    title: Health score
+    type: gauge
+    theme: score
+    unit: none
+    decimals: 0
+    min: 0
+    max: 100
+    width: 6
+    height: 5
+
+  - id: service_health_status
+    signal: service_health_status
+    title: Decision
+    type: stat
+    theme: decision
+    unit: short
+    decimals: 0
+    width: 6
+    height: 5
+
+  - id: text_actions
+    type: text
+    title: Action checklist
+    width: 12
+    height: 5
+    content: |
+      **If ACT / red scrape** → check pods, image, Helm version below, then rollout.
+      **If 5xx or latency bad** → set **Method** + **API path**, open Golden Signals + API SLO table.
+      **If heap / CPU red** → open JVM and Kubernetes sections.
+      **Still unclear** → Error logs, then Tempo traces.
+
+  # ── 1. Service health (KPI strip + sparklines) ─────────────
+  - id: row_health
+    type: row
+    title: "1 · Service health"
+
+  - id: text_health
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Service health** — First stop in an incident: are pods up and scraping, restarting, and what **image / Helm chart / app version** is live?
+      Green KPIs → continue to Golden Signals. Red scrape/restarts → fix deploy before reading latency charts.
+
+  - id: k8s_pod_count
+    signal: k8s_pod_count
+    title: Pods
+    type: stat
+    theme: neutral
+    unit: short
+    decimals: 0
+    width: 3
+    height: 4
+
+  - id: service_health_up
+    signal: service_health_up
+    title: Scrape up
+    type: stat
+    theme: health
+    unit: short
+    decimals: 0
+    width: 3
+    height: 4
+
+  - id: k8s_restarts
+    signal: k8s_restarts
+    title: Restarts
+    type: stat
+    theme: restarts
+    unit: short
+    decimals: 0
+    width: 3
+    height: 4
+
+  - id: process_uptime
+    signal: process_uptime
+    title: Uptime
+    type: stat
+    theme: neutral
+    unit: s
+    decimals: 0
+    width: 3
+    height: 4
+
+  - id: k8s_cpu_usage_stat
+    signal: k8s_cpu_usage
+    title: CPU (cores)
+    type: stat
+    theme: neutral
+    unit: short
+    decimals: 2
+    width: 4
+    height: 4
+
+  - id: k8s_memory_usage_stat
+    signal: k8s_memory_usage
+    title: Memory
+    type: stat
+    theme: neutral
+    unit: bytes
+    decimals: 1
+    width: 4
+    height: 4
+
+  - id: jvm_heap_used_ratio
+    signal: jvm_heap_used_ratio
+    title: Heap used
+    type: gauge
+    width: 4
+    height: 4
+
+  - id: k8s_image_version
+    signal: k8s_image_version
+    title: Running image(s)
+    type: table
+    width: 8
+    height: 5
+
+  - id: k8s_helm_chart
+    signal: k8s_helm_chart
+    title: Helm chart (deploy)
+    type: table
+    width: 8
+    height: 5
+
+  - id: k8s_app_version
+    signal: k8s_app_version
+    title: App version
+    type: table
+    width: 8
+    height: 5
+
+  # ── 2. Golden Signals (use HTTP method + API path dropdowns) ─
+  - id: row_golden
+    type: row
+    title: "2 · Golden Signals (filter by Method + API path · All = sum)"
+
+  - id: text_golden
+    type: text
+    title: ""
+    width: 24
+    height: 3
+    content: |
+      **Golden Signals** — Y-axis on rate charts is **requests per second** (e.g. **0.03 ≈ 0.03 req/s**, about 1.8 requests/minute — light traffic, not 3%).
+      **All** on Method/API path = include every endpoint (filter `.*`). **total (sum)** panels add them into one line; **by API** panels draw **one colored line per method+uri**.
+
   - id: http_request_rate
     signal: http_request_rate
-    title: Request rate (all APIs)
+    title: Traffic — TOTAL rate (sum of matching APIs) · req/s
     type: timeseries
-    width: 8
-    height: 8
-
-  - id: http_requests_2xx
-    signal: http_requests_2xx
-    title: Success 2xx
-    type: timeseries
-    width: 8
-    height: 8
-
-  - id: http_error_rate
-    signal: http_error_rate
-    title: Failures 5xx
-    type: timeseries
-    width: 8
-    height: 8
-
-  - id: http_requests_by_status
-    signal: http_requests_by_status
-    title: Requests by status code
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: http_requests_4xx
-    signal: http_requests_4xx
-    title: Client errors 4xx
-    type: timeseries
+    palette: fixed
+    color: dark-blue
+    fill_opacity: 40
+    unit: reqps
     width: 12
     height: 8
 
   - id: http_requests_by_uri
     signal: http_requests_by_uri
-    title: Per-API request rate (top 10)
+    title: Traffic — per API (one line each) · req/s
     type: timeseries
-    width: 12
-    height: 8
-
-  - id: http_requests_by_outcome
-    signal: http_requests_by_outcome
-    title: Requests by outcome
-    type: timeseries
-    width: 12
-    height: 8
-
-  - id: http_client_request_rate
-    signal: http_client_request_rate
-    title: Outbound HTTP client calls
-    type: timeseries
+    palette: classic
+    fill_opacity: 20
+    unit: reqps
     width: 12
     height: 8
 
   - id: http_latency_p95
     signal: http_latency_p95
-    title: Latency p95 (all)
+    title: Latency — p95 TOTAL (sum/filter) · seconds
     type: timeseries
+    palette: fixed
+    color: dark-purple
+    fill_opacity: 35
+    unit: s
     width: 12
     height: 8
 
   - id: http_latency_p95_by_uri
     signal: http_latency_p95_by_uri
-    title: Latency p95 by API
+    title: Latency — p95 per API (one line each) · seconds
     type: timeseries
-    width: 24
+    palette: classic
+    fill_opacity: 15
+    unit: s
+    width: 12
     height: 8
 
-  # ── JVM / process ──
-  - id: jvm_heap_used
-    signal: jvm_heap_used
-    title: JVM heap used
+  - id: http_error_ratio
+    signal: http_error_ratio
+    title: Errors — 5xx ratio TOTAL · fraction
     type: timeseries
+    palette: fixed
+    color: dark-red
+    fill_opacity: 40
+    unit: percentunit
     width: 8
     height: 8
 
-  - id: jvm_heap_max
-    signal: jvm_heap_max
-    title: JVM heap max
+  - id: http_error_rate_total
+    signal: http_error_rate_total
+    title: Errors — 5xx TOTAL rate (sum) · req/s
     type: timeseries
+    palette: fixed
+    color: dark-orange
+    fill_opacity: 40
+    unit: reqps
     width: 8
     height: 8
 
-  - id: jvm_nonheap_used
-    signal: jvm_nonheap_used
-    title: JVM non-heap used
+  - id: http_error_rate
+    signal: http_error_rate
+    title: Errors — 5xx per API (one line each) · req/s
     type: timeseries
-    width: 8
-    height: 8
-
-  - id: jvm_gc_pause
-    signal: jvm_gc_pause
-    title: JVM GC pause rate
-    type: timeseries
-    width: 8
-    height: 8
-
-  - id: jvm_threads_live
-    signal: jvm_threads_live
-    title: JVM live threads
-    type: timeseries
+    palette: classic
+    fill_opacity: 20
+    unit: reqps
     width: 8
     height: 8
 
   - id: process_cpu_usage
     signal: process_cpu_usage
-    title: Process CPU usage
+    title: Saturation — process CPU
     type: timeseries
+    color: dark-orange
+    fill_opacity: 35
+    unit: percentunit
     width: 8
     height: 8
 
-  - id: process_files_open
-    signal: process_files_open
-    title: Open file descriptors
+  - id: http_latency_p50
+    signal: http_latency_p50
+    title: Latency — p50 (selected API)
     type: timeseries
+    color: dark-green
+    fill_opacity: 30
+    unit: s
     width: 8
-    height: 8
+    height: 7
 
-  - id: system_cpu_usage
-    signal: system_cpu_usage
-    title: System CPU usage
+  - id: http_latency_p75
+    signal: http_latency_p75
+    title: Latency — p75 (selected API)
     type: timeseries
+    color: dark-blue
+    fill_opacity: 30
+    unit: s
     width: 8
-    height: 8
+    height: 7
 
-  - id: logback_events
-    signal: logback_events
-    title: Log events by level
+  - id: http_latency_p95_detail
+    signal: http_latency_p95
+    title: Latency — p95 detail (selected API)
     type: timeseries
+    color: dark-purple
+    fill_opacity: 30
+    unit: s
     width: 8
-    height: 8
+    height: 7
 
-  - id: tomcat_threads_busy
-    signal: tomcat_threads_busy
-    title: Tomcat busy threads
+  # ── 3. API SLO table ───────────────────────────────────────
+  - id: row_api_table
+    type: row
+    title: "3 · API SLO table (also respects Method + API path filter)"
+
+  - id: text_api_table
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **API SLO table** — Per-endpoint status counts and latency percentiles for the time range.
+      Use this to find which URI is failing or slow; cell colors highlight 4xx/5xx and high latency.
+
+  - id: http_api_performance_table
+    signal: http_api_performance_table
+    title: API metrics — status · fail · avg/p50/p75/p90/p95 (filter or All)
+    type: table
+    width: 24
+    height: 14
+
+  # ── 4. HTTP trends ─────────────────────────────────────────
+  - id: row_http_trends
+    type: row
+    title: "4 · HTTP trends (same Method + API path filter)"
+    collapsed: true
+
+  - id: text_http_trends
+    type: text
+    title: ""
+    width: 24
+    height: 3
+    content: |
+      **HTTP trends** — Same filters. Charts marked **per API** use different colors per `METHOD /path`.
+      **0.03 on the axis = 0.03 requests/second** (Prometheus `rate()`), not 3% and not raw request count.
+
+  - id: http_requests_by_status
+    signal: http_requests_by_status
+    title: Requests by status code (one line per status) · req/s
     type: timeseries
-    width: 8
-    height: 8
+    palette: classic
+    fill_opacity: 30
+    unit: reqps
+    width: 12
+    height: 7
 
-  - id: service_health_up
-    signal: service_health_up
-    title: Scrape health (up)
-    type: stat
-    width: 8
-    height: 4
+  - id: http_requests_by_outcome
+    signal: http_requests_by_outcome
+    title: Requests by outcome (one line each) · req/s
+    type: timeseries
+    palette: classic
+    fill_opacity: 30
+    unit: reqps
+    width: 12
+    height: 7
 
-  - id: k8s_restarts
-    signal: k8s_restarts
-    title: Container restarts
-    type: stat
+  - id: http_requests_2xx
+    signal: http_requests_2xx
+    title: Success 2xx — per API · req/s
+    type: timeseries
+    palette: classic
+    fill_opacity: 25
+    unit: reqps
     width: 8
-    height: 4
+    height: 7
 
-  # ── Mongo / Redis / Kafka ──
+  - id: http_requests_4xx
+    signal: http_requests_4xx
+    title: Client 4xx — per API · req/s
+    type: timeseries
+    palette: classic
+    fill_opacity: 25
+    unit: reqps
+    width: 8
+    height: 7
+
+  - id: http_error_rate_trends
+    signal: http_error_rate
+    title: Server 5xx — per API · req/s
+    type: timeseries
+    palette: classic
+    fill_opacity: 25
+    unit: reqps
+    width: 8
+    height: 7
+
+  - id: http_client_request_rate
+    signal: http_client_request_rate
+    title: Outbound HTTP client
+    type: timeseries
+    color: dark-blue
+    fill_opacity: 25
+    width: 24
+    height: 7
+
+  # ── 5. Dependencies ────────────────────────────────────────
+  - id: row_mongo
+    type: row
+    title: "5a · MongoDB"
+    collapsed: true
+
+  - id: text_mongo
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **MongoDB** — Command rate, p95 latency, and pool usage. Rising checked-out / pool size with latency spikes often means connection pressure or slow queries.
+
   - id: mongo_commands
     signal: mongo_commands
-    title: MongoDB commands
+    title: Mongo command rate
     type: timeseries
+    color: dark-green
+    fill_opacity: 30
     width: 12
-    height: 8
+    height: 7
+
+  - id: mongo_commands_p95
+    signal: mongo_commands_p95
+    title: Mongo command p95
+    type: timeseries
+    color: dark-purple
+    fill_opacity: 30
+    unit: s
+    width: 12
+    height: 7
 
   - id: mongo_pool_checkedout
     signal: mongo_pool_checkedout
-    title: MongoDB pool checked-out
+    title: Mongo pool checked-out
     type: timeseries
+    color: dark-orange
+    fill_opacity: 30
     width: 12
-    height: 8
+    height: 7
+
+  - id: mongo_pool_size
+    signal: mongo_pool_size
+    title: Mongo pool size
+    type: timeseries
+    color: dark-blue
+    fill_opacity: 25
+    width: 12
+    height: 7
+
+  - id: row_redis
+    type: row
+    title: "5b · Redis"
+    collapsed: true
+
+  - id: text_redis
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Redis** — Command rate and p95. Empty panels mean the app is not emitting Lettuce metrics yet (or Redis is unused).
 
   - id: redis_commands
     signal: redis_commands
-    title: Redis commands
+    title: Redis command rate
     type: timeseries
+    color: dark-red
+    fill_opacity: 30
     width: 12
-    height: 8
+    height: 7
+
+  - id: redis_commands_p95
+    signal: redis_commands_p95
+    title: Redis command p95
+    type: timeseries
+    color: dark-purple
+    fill_opacity: 30
+    unit: s
+    width: 12
+    height: 7
+
+  - id: row_kafka
+    type: row
+    title: "5c · Kafka"
+    collapsed: true
+
+  - id: text_kafka
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Kafka** — Listener rate, failures, p95 duration, and consumer lag. Growing lag + listener errors → consumer stuck or poison messages.
 
   - id: kafka_listener
     signal: kafka_listener
     title: Kafka listener rate
     type: timeseries
+    color: dark-blue
+    fill_opacity: 30
     width: 12
-    height: 8
+    height: 7
 
   - id: kafka_listener_errors
     signal: kafka_listener_errors
     title: Kafka listener failures
     type: timeseries
+    color: dark-red
+    fill_opacity: 40
     width: 12
-    height: 8
+    height: 7
 
-  # ── Kubernetes resource pressure ──
+  - id: kafka_listener_p95
+    signal: kafka_listener_p95
+    title: Kafka listener p95
+    type: timeseries
+    color: dark-purple
+    fill_opacity: 30
+    unit: s
+    width: 12
+    height: 7
+
+  - id: kafka_consumer_lag
+    signal: kafka_consumer_lag
+    title: Kafka consumer lag
+    type: timeseries
+    color: dark-orange
+    fill_opacity: 35
+    width: 12
+    height: 7
+
+  # ── 6. JVM / process (detail) ──────────────────────────────
+  - id: row_jvm
+    type: row
+    title: "6 · JVM / process"
+    collapsed: true
+
+  - id: text_jvm
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **JVM / process** — Heap, GC, threads, Tomcat busy threads. Heap near max + GC spikes → risk of OOM or long pauses; check before scaling blindly.
+
+  - id: jvm_heap_used
+    signal: jvm_heap_used
+    title: JVM heap used
+    type: timeseries
+    color: dark-blue
+    fill_opacity: 30
+    unit: bytes
+    width: 8
+    height: 7
+
+  - id: jvm_heap_max
+    signal: jvm_heap_max
+    title: JVM heap max
+    type: timeseries
+    color: dark-blue
+    fill_opacity: 15
+    unit: bytes
+    width: 8
+    height: 7
+
+  - id: jvm_nonheap_used
+    signal: jvm_nonheap_used
+    title: JVM non-heap
+    type: timeseries
+    color: dark-purple
+    fill_opacity: 25
+    unit: bytes
+    width: 8
+    height: 7
+
+  - id: jvm_gc_pause
+    signal: jvm_gc_pause
+    title: GC pause rate
+    type: timeseries
+    color: dark-orange
+    fill_opacity: 30
+    width: 8
+    height: 7
+
+  - id: jvm_threads_live
+    signal: jvm_threads_live
+    title: Live threads
+    type: timeseries
+    color: dark-green
+    fill_opacity: 25
+    width: 8
+    height: 7
+
+  - id: tomcat_threads_busy
+    signal: tomcat_threads_busy
+    title: Tomcat busy threads
+    type: timeseries
+    color: dark-yellow
+    fill_opacity: 30
+    width: 8
+    height: 7
+
+  - id: process_files_open
+    signal: process_files_open
+    title: Open FDs
+    type: timeseries
+    color: dark-blue
+    fill_opacity: 20
+    width: 8
+    height: 7
+
+  - id: system_cpu_usage
+    signal: system_cpu_usage
+    title: System CPU
+    type: timeseries
+    color: dark-orange
+    fill_opacity: 25
+    unit: percentunit
+    width: 8
+    height: 7
+
+  - id: logback_events
+    signal: logback_events
+    title: Log events by level
+    type: timeseries
+    color: dark-red
+    fill_opacity: 25
+    width: 8
+    height: 7
+
+  # ── 7. Kubernetes detail ───────────────────────────────────
+  - id: row_k8s
+    type: row
+    title: "7 · Kubernetes pressure"
+    collapsed: true
+
+  - id: text_k8s
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Kubernetes pressure** — Container CPU and memory over time (detail after the KPI strip). Sustained high CPU with latency rise → scale or optimize hot APIs.
+
   - id: k8s_cpu_usage
     signal: k8s_cpu_usage
     title: Container CPU usage
     type: timeseries
+    color: dark-orange
+    fill_opacity: 35
     width: 12
-    height: 8
+    height: 7
 
   - id: k8s_memory_usage
     signal: k8s_memory_usage
-    title: Container memory usage
+    title: Container memory
     type: timeseries
+    color: dark-blue
+    fill_opacity: 35
+    unit: bytes
     width: 12
-    height: 8
+    height: 7
+
+  # ── 8. Evidence ────────────────────────────────────────────
+  - id: row_traces
+    type: row
+    title: "8 · Evidence — traces & logs"
+
+  - id: text_evidence
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Evidence** — Proof layer after metrics. Open Tempo for the service, then **Error logs** first, then full Logs.
+      Correlate a bad URI from the API table with error lines and a slow trace.
 
   - id: trace_latency_p95
     signal: trace_latency_p95
@@ -234,3 +663,17 @@ panels:
     type: link
     width: 24
     height: 3
+
+  - id: service_error_logs
+    signal: service_error_logs
+    title: Error logs
+    type: logs
+    width: 24
+    height: 9
+
+  - id: service_logs_all
+    signal: service_logs_all
+    title: Logs
+    type: logs
+    width: 24
+    height: 10

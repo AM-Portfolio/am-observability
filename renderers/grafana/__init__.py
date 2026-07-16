@@ -1,24 +1,72 @@
-"""Grafana dashboard JSON renderer (output side)."""
+"""Grafana dashboard JSON renderer (output side) — colorful SRE-style panels."""
 
 from __future__ import annotations
 
 from typing import Any
 
+# Compound Service dropdown value: service#app#application (auto-fills panels).
+_SERVICE_PACK_SEP = "#"
+_PACK_QUERY = (
+    'query_result(label_replace(vector(1), "v", "$service_pack", "", ""))'
+)
+
+# Semantic palette
+_GREEN = "dark-green"
+_YELLOW = "dark-yellow"
+_RED = "dark-red"
+_BLUE = "dark-blue"
+_ORANGE = "dark-orange"
+
+
+def _thresholds(steps: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"mode": "absolute", "steps": steps}
+
 
 def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
+    color = panel.get("color") or _BLUE
+    fill = float(panel.get("fill_opacity", 25))
+    palette = panel.get("palette") or "classic"
+    if palette == "fixed":
+        color_cfg: dict[str, Any] = {"mode": "fixed", "fixedColor": color}
+    else:
+        color_cfg = {"mode": "palette-classic"}
+    legend_fmt = panel.get("legend") or "__auto"
     return {
         "datasource": ds,
-        "fieldConfig": {"defaults": {}, "overrides": []},
+        "fieldConfig": {
+            "defaults": {
+                "color": color_cfg,
+                "custom": {
+                    "drawStyle": "line",
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 2,
+                    "fillOpacity": fill,
+                    "gradientMode": "opacity",
+                    "showPoints": "never",
+                    "spanNulls": True,
+                },
+                "unit": panel.get("unit") or "short",
+            },
+            "overrides": [],
+        },
         "gridPos": panel["gridPos"],
         "id": panel_id,
-        "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": True}},
+        "options": {
+            "legend": {
+                "displayMode": "table",
+                "placement": "bottom",
+                "showLegend": True,
+                "calcs": ["mean", "lastNotNull"],
+            },
+            "tooltip": {"mode": "multi", "sort": "desc"},
+        },
         "targets": [
             {
                 "datasource": ds,
                 "editorMode": "code",
                 "expr": panel["expr"],
-                "legendFormat": "__auto",
+                "legendFormat": legend_fmt,
                 "range": True,
                 "refId": "A",
             }
@@ -30,14 +78,62 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
 
 def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
+    theme = panel.get("theme") or "health"  # health | neutral | restarts | ratio | decision
+    mappings = list(panel.get("mappings") or [])
+    if theme == "restarts":
+        steps = [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _RED, "value": 3},
+        ]
+    elif theme == "ratio":
+        steps = [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 0.01},
+            {"color": _RED, "value": 0.05},
+        ]
+    elif theme == "decision":
+        steps = [
+            {"color": _RED, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _GREEN, "value": 2},
+        ]
+        if not mappings:
+            mappings = [
+                {
+                    "type": "value",
+                    "options": {
+                        "0": {"text": "ACT", "color": _RED},
+                        "1": {"text": "WATCH", "color": _YELLOW},
+                        "2": {"text": "GOOD", "color": _GREEN},
+                    },
+                }
+            ]
+    elif theme == "neutral":
+        steps = [{"color": _BLUE, "value": None}]
+    else:  # health / up
+        steps = [
+            {"color": _RED, "value": None},
+            {"color": _GREEN, "value": 1},
+        ]
+
     return {
         "datasource": ds,
-        "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+        "fieldConfig": {
+            "defaults": {
+                "unit": panel.get("unit") or "short",
+                "decimals": panel.get("decimals", 2),
+                "thresholds": _thresholds(steps),
+                "color": {"mode": "thresholds"},
+                "mappings": mappings,
+            },
+            "overrides": [],
+        },
         "gridPos": panel["gridPos"],
         "id": panel_id,
         "options": {
-            "colorMode": "value",
-            "graphMode": "none",
+            "colorMode": "background",
+            "graphMode": "area" if theme != "decision" else "none",
             "justifyMode": "auto",
             "orientation": "auto",
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
@@ -53,6 +149,61 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         ],
         "title": panel["title"],
         "type": "stat",
+    }
+
+
+def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    ds = panel["datasource"]
+    unit = panel.get("unit") or "percentunit"
+    gmin = panel.get("min", 0)
+    gmax = panel.get("max", 1)
+    if panel.get("theme") == "score":
+        steps = [
+            {"color": _RED, "value": None},
+            {"color": _YELLOW, "value": 50},
+            {"color": _GREEN, "value": 80},
+        ]
+        unit = panel.get("unit") or "none"
+        gmin = 0
+        gmax = 100
+    else:
+        steps = [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 0.7},
+            {"color": _RED, "value": 0.9},
+        ]
+    mappings = panel.get("mappings") or []
+    return {
+        "datasource": ds,
+        "fieldConfig": {
+            "defaults": {
+                "unit": unit,
+                "min": gmin,
+                "max": gmax,
+                "decimals": panel.get("decimals", 0),
+                "thresholds": _thresholds(steps),
+                "color": {"mode": "thresholds"},
+                "mappings": mappings,
+            },
+            "overrides": [],
+        },
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
+            "showThresholdLabels": False,
+            "showThresholdMarkers": True,
+        },
+        "targets": [
+            {
+                "datasource": ds,
+                "editorMode": "code",
+                "expr": panel["expr"],
+                "refId": "A",
+            }
+        ],
+        "title": panel["title"],
+        "type": "gauge",
     }
 
 
@@ -87,7 +238,6 @@ def _logs_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
 
 
 def _link_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
-    """Text panel with Tempo explore link (not a fake Prom timeseries)."""
     url = panel.get("url") or "#"
     search = panel.get("search") or ""
     return {
@@ -106,11 +256,227 @@ def _link_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     }
 
 
+def _text_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    """Markdown description / action guidance panel."""
+    return {
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "code": {"language": "markdown", "showLineNumbers": False, "showMiniMap": False},
+            "content": panel.get("content") or "",
+            "mode": "markdown",
+        },
+        "title": panel.get("title") or "",
+        "transparent": True,
+        "type": "text",
+    }
+
+
+def _row_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    return {
+        "collapsed": bool(panel.get("collapsed") or False),
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "panels": [],
+        "title": panel["title"],
+        "type": "row",
+    }
+
+
+def _table_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
+    """Multi-query Prometheus table (API SLO or image inventory)."""
+    ds = panel["datasource"]
+    column_labels: dict[str, str] = dict(panel.get("column_labels") or {})
+    join_field = panel.get("join_field") or "api"
+    targets = []
+    join_labels = {
+        "api": "API",
+        "image": "Image",
+        "helm_sh_chart": "Helm chart",
+        "label_helm_sh_chart": "Helm chart",
+        "app_kubernetes_io_version": "App version",
+        "label_app_kubernetes_io_version": "App version",
+    }
+    join_title = join_labels.get(join_field, join_field.replace("_", " ").title())
+    rename: dict[str, str] = {join_field: join_title}
+    exclude: dict[str, bool] = {"Time": True, "method": True, "uri": True}
+
+    for t in panel.get("targets") or []:
+        ref = t.get("refId") or "A"
+        label = column_labels.get(ref) or t.get("legend") or ref
+        targets.append(
+            {
+                "datasource": ds,
+                "editorMode": "code",
+                "expr": t["expr"],
+                "format": t.get("format") or "table",
+                "instant": bool(t.get("instant", True)),
+                "refId": ref,
+            }
+        )
+        rename[f"Value #{ref}"] = label
+        exclude[f"Time #{ref}"] = True
+
+    is_api = join_field == "api"
+    overrides: list[dict[str, Any]] = []
+    index_by: dict[str, int] = {}
+
+    if is_api:
+        index_by = {
+            "API": 0,
+            "Total": 1,
+            "2xx": 2,
+            "4xx": 3,
+            "5xx": 4,
+            "Fail": 5,
+            "avg": 6,
+            "p50": 7,
+            "p75": 8,
+            "p90": 9,
+            "p95": 10,
+        }
+        overrides = [
+            {
+                "matcher": {"id": "byName", "options": "API"},
+                "properties": [
+                    {"id": "custom.width", "value": 260},
+                    {"id": "decimals", "value": 0},
+                ],
+            },
+            {
+                "matcher": {"id": "byName", "options": "2xx"},
+                "properties": [
+                    {"id": "decimals", "value": 0},
+                    {"id": "unit", "value": "short"},
+                    {
+                        "id": "thresholds",
+                        "value": _thresholds(
+                            [{"color": _GREEN, "value": None}, {"color": "semi-dark-green", "value": 1}]
+                        ),
+                    },
+                    {"id": "color", "value": {"mode": "thresholds"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^(4xx)$/"},
+                "properties": [
+                    {"id": "decimals", "value": 0},
+                    {
+                        "id": "thresholds",
+                        "value": _thresholds(
+                            [
+                                {"color": _GREEN, "value": None},
+                                {"color": _YELLOW, "value": 1},
+                                {"color": _ORANGE, "value": 10},
+                            ]
+                        ),
+                    },
+                    {"id": "color", "value": {"mode": "thresholds"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^(5xx|Fail)$/"},
+                "properties": [
+                    {"id": "decimals", "value": 0},
+                    {
+                        "id": "thresholds",
+                        "value": _thresholds(
+                            [
+                                {"color": _GREEN, "value": None},
+                                {"color": _YELLOW, "value": 1},
+                                {"color": _RED, "value": 5},
+                            ]
+                        ),
+                    },
+                    {"id": "color", "value": {"mode": "thresholds"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^(avg|p50|p75|p90|p95)$/"},
+                "properties": [
+                    {"id": "unit", "value": "s"},
+                    {"id": "decimals", "value": 3},
+                    {
+                        "id": "thresholds",
+                        "value": _thresholds(
+                            [
+                                {"color": _GREEN, "value": None},
+                                {"color": _YELLOW, "value": 0.2},
+                                {"color": _RED, "value": 1},
+                            ]
+                        ),
+                    },
+                    {"id": "color", "value": {"mode": "thresholds"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byName", "options": "Total"},
+                "properties": [{"id": "decimals", "value": 0}, {"id": "unit", "value": "short"}],
+            },
+        ]
+    else:
+        value_col = column_labels.get((panel.get("targets") or [{}])[0].get("refId") or "A") or "pods"
+        # After rename, Value #Ref becomes legend
+        index_by = {join_title: 0, value_col: 1}
+        overrides = [
+            {
+                "matcher": {"id": "byName", "options": join_title},
+                "properties": [{"id": "custom.width", "value": 420}],
+            }
+        ]
+
+    transforms: list[dict[str, Any]] = []
+    if len(targets) > 1:
+        transforms.append(
+            {"id": "joinByField", "options": {"byField": join_field, "mode": "outer"}}
+        )
+    transforms.append(
+        {
+            "id": "organize",
+            "options": {
+                "excludeByName": exclude,
+                "renameByName": rename,
+                "indexByName": index_by,
+            },
+        }
+    )
+
+    return {
+        "datasource": ds,
+        "fieldConfig": {
+            "defaults": {
+                "custom": {"align": "auto", "filterable": True},
+                "decimals": 3,
+            },
+            "overrides": overrides,
+        },
+        "gridPos": panel["gridPos"],
+        "id": panel_id,
+        "options": {
+            "showHeader": True,
+            "cellHeight": "sm",
+            "footer": {"show": False, "reducer": ["sum"], "countRows": False, "fields": ""},
+        },
+        "targets": targets,
+        "title": panel["title"],
+        "transformations": transforms,
+        "type": "table",
+    }
+
+
 _RENDERERS = {
     "timeseries": _timeseries_panel,
     "stat": _stat_panel,
+    "gauge": _gauge_panel,
     "logs": _logs_panel,
     "link": _link_panel,
+    "text": _text_panel,
+    "row": _row_panel,
+    "table": _table_panel,
 }
 
 
@@ -131,15 +497,177 @@ def _var_custom(name: str, label: str, value: str, options: list[str]) -> dict[s
     }
 
 
-def _var_textbox(name: str, label: str, value: str) -> dict[str, Any]:
+def _var_custom_kv(
+    name: str,
+    label: str,
+    *,
+    current_text: str,
+    current_value: str,
+    pairs: list[tuple[str, str]],
+) -> dict[str, Any]:
+    opts = []
+    query_parts = []
+    for text, value in pairs:
+        opts.append({"selected": value == current_value, "text": text, "value": value})
+        query_parts.append(f"{text} : {value}")
     return {
         "name": name,
         "label": label,
-        "type": "textbox",
+        "type": "custom",
         "hide": 0,
-        "query": value,
+        "multi": False,
+        "includeAll": False,
+        "query": ",".join(query_parts),
+        "current": {"selected": True, "text": current_text, "value": current_value},
+        "options": opts,
+    }
+
+
+def _var_derived_from_pack(
+    name: str,
+    label: str,
+    *,
+    value: str,
+    regex: str,
+    datasource_uid: str = "prometheus",
+) -> dict[str, Any]:
+    return {
+        "name": name,
+        "label": label,
+        "type": "query",
+        "hide": 2,
+        "multi": False,
+        "includeAll": False,
+        "datasource": {"type": "prometheus", "uid": datasource_uid},
+        "definition": _PACK_QUERY,
+        "query": _PACK_QUERY,
+        "regex": regex,
+        "refresh": 1,
+        "sort": 0,
         "current": {"selected": True, "text": value, "value": value},
         "options": [{"selected": True, "text": value, "value": value}],
+    }
+
+
+def _var_prom_label(
+    name: str,
+    label: str,
+    *,
+    query: str,
+    datasource_uid: str = "prometheus",
+    all_value: str = ".*",
+) -> dict[str, Any]:
+    """Prometheus label_values dropdown with All = regex .* (sum of matching series)."""
+    return {
+        "name": name,
+        "label": label,
+        "type": "query",
+        "hide": 0,
+        "multi": False,
+        "includeAll": True,
+        "allValue": all_value,
+        "datasource": {"type": "prometheus", "uid": datasource_uid},
+        "definition": query,
+        "query": query,
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "current": {"selected": True, "text": "All", "value": "$__all"},
+        "options": [],
+    }
+
+
+def _service_pack(target: dict[str, str]) -> str:
+    return (
+        f"{target['service']}{_SERVICE_PACK_SEP}"
+        f"{target['app']}{_SERVICE_PACK_SEP}"
+        f"{target['application']}"
+    )
+
+
+def _templating(ir: dict[str, Any]) -> dict[str, Any]:
+    ns = ir["namespace"]
+    service = ir["service"]
+    app = ir["app"]
+    application = ir.get("application") or service
+    targets = ir.get("service_targets") or [
+        {"service": service, "app": app, "application": application, "namespace": ns}
+    ]
+
+    pack = _service_pack({"service": service, "app": app, "application": application})
+    pairs = [(t["service"], _service_pack(t)) for t in targets]
+    seen: set[str] = set()
+    unique_pairs: list[tuple[str, str]] = []
+    for text, value in pairs:
+        if text in seen:
+            continue
+        seen.add(text)
+        unique_pairs.append((text, value))
+
+    ds_uid = "prometheus"
+    inputs = ir.get("bindings_inputs") or {}
+    metrics = inputs.get("metrics") or {}
+    if metrics.get("datasource_uid"):
+        ds_uid = str(metrics["datasource_uid"])
+
+    return {
+        "list": [
+            _var_custom(
+                "namespace",
+                "Namespace",
+                ns,
+                ["am-apps-preprod", "am-apps-prod", "am-apps-dev"],
+            ),
+            _var_custom_kv(
+                "service_pack",
+                "Service",
+                current_text=service,
+                current_value=pack,
+                pairs=unique_pairs,
+            ),
+            _var_derived_from_pack(
+                "service",
+                "service",
+                value=service,
+                regex=r'/v="(?<value>[^#]+)#/',
+                datasource_uid=ds_uid,
+            ),
+            _var_derived_from_pack(
+                "app",
+                "app",
+                value=app,
+                regex=r'/v="[^#]+#(?<value>[^#]+)#/',
+                datasource_uid=ds_uid,
+            ),
+            _var_derived_from_pack(
+                "application",
+                "application",
+                value=application,
+                regex=r'/v="[^#]+#[^#]+#(?<value>[^"]+)"/',
+                datasource_uid=ds_uid,
+            ),
+            # Drill-down: All = sum across APIs; pick one path for deep latency/5xx view
+            _var_prom_label(
+                "method",
+                "HTTP method",
+                query=(
+                    "label_values("
+                    'http_server_requests_seconds_count{application="$application",'
+                    'namespace="$namespace",uri!~".*actuator.*"}, method)'
+                ),
+                datasource_uid=ds_uid,
+            ),
+            _var_prom_label(
+                "uri",
+                "API path",
+                query=(
+                    "label_values("
+                    'http_server_requests_seconds_count{application="$application",'
+                    'namespace="$namespace",method=~"$method",uri!~".*actuator.*"}, uri)'
+                ),
+                datasource_uid=ds_uid,
+            ),
+        ]
     }
 
 
@@ -147,19 +675,16 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
     """Render adapted IR → Grafana dashboard JSON."""
     panels = []
     for idx, panel in enumerate(ir.get("panels") or [], start=1):
-        renderer = _RENDERERS.get(panel.get("type") or "timeseries", _timeseries_panel)
+        ptype = panel.get("type") or "timeseries"
+        renderer = _RENDERERS.get(ptype, _timeseries_panel)
+        # Pass optional viz hints from template through unchanged
         panels.append(renderer(panel, idx))
-
-    ns = ir["namespace"]
-    service = ir["service"]
-    app = ir["app"]
-    application = ir.get("application") or service
 
     return {
         "annotations": {"list": []},
         "editable": True,
         "fiscalYearStartMonth": 0,
-        "graphTooltip": 0,
+        "graphTooltip": 1,
         "id": None,
         "links": [],
         "liveNow": False,
@@ -168,19 +693,7 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
         "schemaVersion": 38,
         "style": "dark",
         "tags": list(ir.get("tags") or []),
-        "templating": {
-            "list": [
-                _var_custom(
-                    "namespace",
-                    "Namespace",
-                    ns,
-                    ["am-apps-preprod", "am-apps-prod", "am-apps-dev"],
-                ),
-                _var_textbox("service", "Service", service),
-                _var_textbox("app", "App (pod prefix)", app),
-                _var_textbox("application", "Metrics application", application),
-            ]
-        },
+        "templating": _templating(ir),
         "time": {"from": "now-1h", "to": "now"},
         "timepicker": {},
         "timezone": "",
@@ -190,5 +703,4 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# Binding / CLI alias used by pipeline
 render_grafana = render
