@@ -1013,14 +1013,16 @@ def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
                 datasource_uid=ds_uid,
                 multi=True,
                 include_all=True,
-                all_value=".+",
+                all_value=".*",
             ),
+            # Default "All" must be .* (match empty too). .+ excluded events
+            # without user_id / portfolio_id / section and zeroed Auth + dwell panels.
             _var_custom(
                 "section",
                 "Section",
-                ".+",
+                ".*",
                 [
-                    ".+",
+                    ".*",
                     "portfolio",
                     "trade",
                     "market",
@@ -1038,18 +1040,18 @@ def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
                 "label": "User (hashed)",
                 "type": "textbox",
                 "hide": 0,
-                "query": ".+",
-                "current": {"selected": True, "text": ".+", "value": ".+"},
-                "options": [{"selected": True, "text": ".+", "value": ".+"}],
+                "query": ".*",
+                "current": {"selected": True, "text": ".*", "value": ".*"},
+                "options": [{"selected": True, "text": ".*", "value": ".*"}],
             },
             {
                 "name": "portfolio_id",
                 "label": "Portfolio",
                 "type": "textbox",
                 "hide": 0,
-                "query": ".+",
-                "current": {"selected": True, "text": ".+", "value": ".+"},
-                "options": [{"selected": True, "text": ".+", "value": ".+"}],
+                "query": ".*",
+                "current": {"selected": True, "text": ".*", "value": ".*"},
+                "options": [{"selected": True, "text": ".*", "value": ".*"}],
             },
         ]
     }
