@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import Any
 
 from am_obs.adapt import adapt
-from am_obs.compose import compose, compose_shared, target_from_manifest
+from am_obs.compose import (
+    compose,
+    compose_shared,
+    compose_shared_functional,
+    target_from_manifest,
+)
 from am_obs.loader import Context, load_context
 from am_obs.paths import ROOT, load_yaml
 from am_obs.publish import publish_grafana_configmap
@@ -145,16 +150,34 @@ def generate_shared(
     dashboard = render_grafana(adapted)
     path = _publish_dashboard(dashboard, ctx)
 
-    # Attach shared artifact to a synthetic result
     results.append(
         ServiceResult(
             id="tech-am-services",
             ok=True,
             path=str(path),
             uid=dashboard.get("uid"),
-            warnings=warnings_all,
+            warnings=list(warnings_all),
         )
     )
+
+    # Functional / Services (product latency + usage)
+    func_ir, fw1 = compose_shared_functional(targets, ctx, default=default)
+    warnings_all.extend(fw1)
+    if func_ir:
+        func_adapted, fw2 = adapt(func_ir, ctx)
+        warnings_all.extend(fw2)
+        func_dash = render_grafana(func_adapted)
+        func_path = _publish_dashboard(func_dash, ctx)
+        results.append(
+            ServiceResult(
+                id="func-am-services",
+                ok=True,
+                path=str(func_path),
+                uid=func_dash.get("uid"),
+                warnings=fw1 + fw2,
+            )
+        )
+
     return dashboard, path, results
 
 

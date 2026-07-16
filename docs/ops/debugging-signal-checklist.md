@@ -14,6 +14,8 @@ Use this when deepening observability for AM microservices. The shared dashboard
 | HTTP trends | Status / outcome / outbound client (collapsed by default) |
 | Dependencies | Mongo / Redis / Kafka / Hikari — **section-scoped** filters (cmd / listener / topic / pool); multi-color per-entity rate + p95; pool/lag |
 | Look & feel | Soft KPI value colors (not brick stats); gradient timeseries; shared crosshair; tags `am`/`sre` |
+| Latency | **Avg by API** primary; p95 **or avg fallback** (fixes empty p95); thresholds 1s/5s/20s |
+| Functional | **AM / Functional → Functional / Services** — usage, slow APIs hero, success, Tempo act, domain gauges |
 | JVM detail | Heap, GC, threads, Tomcat, FDs (collapsed) |
 | K8s pressure | CPU + memory timeseries (collapsed) |
 | Evidence | Tempo link → **Error logs** → Logs |

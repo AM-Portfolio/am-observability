@@ -76,9 +76,9 @@ def test_metrics_application_as_grafana_var():
     assert "$kafka_topic" in joined or 'topic=~"$kafka_topic"' in joined
     log_titles = [p["title"] for p in dashboard["panels"] if p["type"] == "logs"]
     assert log_titles == ["Error logs", "Logs"]
-    # Soft KPI stats (value color) for neutral pods
+    # Colorful KPI stats use background wash on dark theme
     pods = next(p for p in dashboard["panels"] if p["title"] == "Pods")
-    assert pods["options"]["colorMode"] == "value"
+    assert pods["options"]["colorMode"] == "background"
     # Decision stays solid background
     decision = next(p for p in dashboard["panels"] if p["title"] == "Decision")
     assert decision["options"]["colorMode"] == "background"
@@ -90,13 +90,15 @@ def test_metrics_application_as_grafana_var():
 
 
 def test_shared_services_dashboard():
-    """Default generate emits one Service-dropdown dashboard for the registry."""
+    """Default generate emits Technical + Functional Service-dropdown dashboards."""
     rc = generate()
     assert rc == 0
     report = json.loads((ROOT / "dist" / "report.json").read_text(encoding="utf-8"))
     assert "tech-am-services" in report["passed"]
+    assert "func-am-services" in report["passed"]
     path = ROOT / "dist" / "grafana" / "tech-am-services.yaml"
     assert path.is_file()
+    assert (ROOT / "dist" / "grafana" / "func-am-services.yaml").is_file()
     ctx = load_context()
     entries = list(ctx.registry.get("services") or [])
     dashboard, out, results = generate_shared(ctx, entries=entries, continue_on_error=True)
@@ -112,6 +114,15 @@ def test_shared_services_dashboard():
     # Selecting pack encodes metrics application for portfolio
     pack_by_text = {o["text"]: o["value"] for o in by_name["service_pack"]["options"]}
     assert pack_by_text["am-portfolio"] == "am-portfolio#am-portfolio#portfolio-app"
+    # Functional board has avg latency (not empty-p95-only)
+    ids = {r.id for r in results}
+    assert "func-am-services" in ids
+    func = next(r for r in results if r.id == "func-am-services")
+    assert func.ok and func.path
+    func_cm = (ROOT / "dist" / "grafana" / "func-am-services.yaml").read_text(encoding="utf-8")
+    assert "Functional / Services" in func_cm
+    assert "http_server_requests_seconds_sum" in func_cm
+    assert "Worst avg" in func_cm or "worst" in func_cm.lower()
 
 
 def test_validate_platform_ok():
@@ -145,10 +156,11 @@ def test_compose_intersection_tier_b_no_red():
     assert any(p["type"] == "logs" for p in dashboard["panels"])
 
 
-def test_functional_empty_skips_func_publish():
-    ctx = load_context()
-    manifest = yaml.safe_load((FIXTURES / "am-portfolio.yaml").read_text(encoding="utf-8"))
-    generate_one(manifest, ctx, source="fixture")
+def test_functional_shared_published():
+    """Shared generate publishes Functional / Services (not per-service func-*)."""
+    rc = generate()
+    assert rc == 0
+    assert (ROOT / "dist" / "grafana" / "func-am-services.yaml").is_file()
     assert not (ROOT / "dist" / "grafana" / "func-am-portfolio.yaml").exists()
 
 

@@ -1,7 +1,272 @@
 apiVersion: am.obs/v1
 kind: DashboardTemplate
 id: domain-kpi
-title: "Functional / {{ service }}"
+title: "Functional / Services"
 folder: "AM / Functional"
-# Present for schema completeness. Generator skips when manifest.functional is [].
-panels: []
+# Product / usage board for every microservice (Namespace + Service dropdown).
+# Latency-first: avg by API surfaces 20–30s calls when histogram p95 is empty.
+
+panels:
+  - id: row_intro
+    type: row
+    title: "0 · How to read"
+
+  - id: text_intro
+    type: text
+    title: ""
+    width: 24
+    height: 3
+    content: |
+      **Functional / Services** — Common product questions for any microservice (same Service dropdown as Technical).
+      **Visits** = API requests (not unique users). **Latency** unit = **seconds** (30 = thirty seconds). Red when avg ≥ **5s**; critical ≥ **20s**.
+      Empty domain tiles mean that service has not published gauges yet.
+
+  - id: row_usage
+    type: row
+    title: "1 · Usage — are people using this?"
+
+  - id: text_usage
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Usage** — Visit rate and hottest APIs. Use **HTTP method / API path** to drill one journey.
+
+  - id: http_request_rate
+    signal: http_request_rate
+    title: Visits · TOTAL · req/s
+    type: timeseries
+    palette: fixed
+    color: dark-blue
+    fill_opacity: 55
+    legend_placement: right
+    legend_mode: list
+    unit: reqps
+    width: 12
+    height: 9
+
+  - id: http_requests_by_uri
+    signal: http_requests_by_uri
+    title: Visits · by API
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 70
+    legend_placement: right
+    legend_mode: list
+    unit: reqps
+    width: 12
+    height: 9
+
+  - id: row_slow
+    type: row
+    title: "2 · Slow APIs — is the product too slow?"
+
+  - id: text_slow
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Slow APIs (hero)** — **Avg by API** is the source of truth for 20–30s pain. p95 uses histogram when present, otherwise avg.
+      Thresholds: 1s / 5s / 20s. If worst avg is red → set Method + API path, open Tempo, then Technical deps.
+
+  - id: http_latency_worst_avg
+    signal: http_latency_worst_avg
+    title: Worst avg · s
+    type: stat
+    theme: latency
+    unit: s
+    decimals: 2
+    width: 6
+    height: 4
+
+  - id: http_latency_slow_api_count
+    signal: http_latency_slow_api_count
+    title: APIs avg ≥ 5s
+    type: stat
+    theme: slow_count
+    unit: short
+    decimals: 0
+    width: 6
+    height: 4
+
+  - id: http_slo_under_1s
+    signal: http_slo_under_1s
+    title: Under 1s · fraction
+    type: stat
+    theme: success_ratio
+    unit: percentunit
+    decimals: 2
+    width: 6
+    height: 4
+
+  - id: http_slo_under_5s
+    signal: http_slo_under_5s
+    title: Under 5s · fraction
+    type: stat
+    theme: success_ratio
+    unit: percentunit
+    decimals: 2
+    width: 6
+    height: 4
+
+  - id: http_latency_avg_by_uri
+    signal: http_latency_avg_by_uri
+    title: Avg latency · by API · seconds
+    type: timeseries
+    palette: classic
+    latency_slo: true
+    fill_opacity: 45
+    legend_placement: right
+    legend_mode: list
+    unit: s
+    width: 12
+    height: 10
+
+  - id: http_latency_p95_by_uri
+    signal: http_latency_p95_by_uri
+    title: p95 / avg · by API · seconds
+    type: timeseries
+    palette: classic
+    latency_slo: true
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
+    unit: s
+    width: 12
+    height: 10
+
+  - id: biz_slow_api_table
+    signal: biz_slow_api_table
+    title: Slow API table · calls · fail · avg · p95 (sort by avg)
+    type: table
+    width: 24
+    height: 10
+
+  - id: row_success
+    type: row
+    title: "3 · Succeeding?"
+
+  - id: text_success
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Succeeding?** — Are users getting 2xx, or failing with 4xx/5xx / CLIENT_ERROR?
+
+  - id: http_success_ratio
+    signal: http_success_ratio
+    title: Success 2xx · fraction
+    type: stat
+    theme: success_ratio
+    unit: percentunit
+    decimals: 2
+    width: 6
+    height: 4
+
+  - id: http_error_ratio
+    signal: http_error_ratio
+    title: 5xx ratio
+    type: timeseries
+    palette: fixed
+    color: dark-red
+    fill_opacity: 50
+    legend_placement: right
+    legend_mode: list
+    unit: percentunit
+    width: 18
+    height: 4
+
+  - id: http_requests_by_outcome
+    signal: http_requests_by_outcome
+    title: By outcome
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 65
+    legend_placement: right
+    legend_mode: list
+    unit: reqps
+    width: 12
+    height: 8
+
+  - id: http_requests_by_status
+    signal: http_requests_by_status
+    title: By status
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 65
+    legend_placement: right
+    legend_mode: list
+    unit: reqps
+    width: 12
+    height: 8
+
+  - id: row_act
+    type: row
+    title: "4 · Act"
+
+  - id: text_act
+    type: text
+    title: Action checklist
+    width: 24
+    height: 5
+    content: |
+      **If worst avg ≥ 5s (or ≥ 20s)** → set **Method + API path** to that endpoint → open **Tempo** below → check Mongo/Redis/Kafka on **Technical / Services**.
+      **If success ratio drops** → check 4xx (client/auth) vs 5xx (server) in section 3.
+      **If visits flat / empty** → scrape/Micrometer missing (same platform blockers as Technical).
+      Domain tiles (users / portfolios / holdings) need portfolio gauges after app redeploy.
+
+  - id: trace_latency_p95
+    signal: trace_latency_p95
+    title: Traces (Tempo)
+    type: link
+    width: 24
+    height: 3
+
+  - id: row_domain
+    type: row
+    title: "5 · Domain KPIs (this service)"
+    collapsed: true
+
+  - id: text_domain
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Domain** — Real business counts when the service publishes gauges. Empty for services without them (e.g. logging).
+
+  - id: portfolio_users_total
+    signal: portfolio_users_total
+    title: Users (owners)
+    type: stat
+    theme: cyan
+    unit: short
+    decimals: 0
+    width: 8
+    height: 5
+
+  - id: portfolio_portfolios_total
+    signal: portfolio_portfolios_total
+    title: Portfolios
+    type: stat
+    theme: purple
+    unit: short
+    decimals: 0
+    width: 8
+    height: 5
+
+  - id: portfolio_holdings_total
+    signal: portfolio_holdings_total
+    title: Holdings
+    type: stat
+    theme: teal
+    unit: short
+    decimals: 0
+    width: 8
+    height: 5

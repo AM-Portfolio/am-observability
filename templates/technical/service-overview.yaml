@@ -15,10 +15,10 @@ panels:
     type: text
     title: ""
     width: 24
-    height: 3
+    height: 2
     content: |
-      **How to read this strip:** Health score combines scrape up, restarts, HTTP 5xx ratio, and JVM heap.
-      **GOOD ≥ 80** · **WATCH 50–79** · **ACT &lt; 50**. Use Method + API path filters (top) to drill latency/errors; **All** = sum across APIs.
+      **Quick decision** — Score 0–100 from scrape, restarts, 5xx, heap. **GOOD ≥ 80** · **WATCH 50–79** · **ACT &lt; 50**.
+      Drill with **Method + API path**. Latency detail: open **Golden Signals** or **Functional / Services**.
 
   - id: service_health_score
     signal: service_health_score
@@ -71,7 +71,7 @@ panels:
     signal: k8s_pod_count
     title: Pods
     type: stat
-    theme: neutral
+    theme: cyan
     unit: short
     decimals: 0
     width: 3
@@ -101,7 +101,7 @@ panels:
     signal: process_uptime
     title: Uptime
     type: stat
-    theme: neutral
+    theme: purple
     unit: s
     decimals: 0
     width: 3
@@ -121,7 +121,7 @@ panels:
     signal: k8s_memory_usage
     title: Memory
     type: stat
-    theme: neutral
+    theme: teal
     unit: bytes
     decimals: 1
     width: 4
@@ -197,11 +197,25 @@ panels:
 
   - id: http_latency_p95
     signal: http_latency_p95
-    title: Latency · p95 TOTAL · s
+    title: Latency · p95 / avg TOTAL · s
     type: timeseries
     palette: fixed
     color: dark-orange
+    latency_slo: true
     fill_opacity: 50
+    legend_placement: right
+    legend_mode: list
+    unit: s
+    width: 12
+    height: 9
+
+  - id: http_latency_avg_by_uri
+    signal: http_latency_avg_by_uri
+    title: Latency · avg per API · s
+    type: timeseries
+    palette: classic
+    latency_slo: true
+    fill_opacity: 40
     legend_placement: right
     legend_mode: list
     unit: s
@@ -210,9 +224,10 @@ panels:
 
   - id: http_latency_p95_by_uri
     signal: http_latency_p95_by_uri
-    title: Latency · p95 per API · s
+    title: Latency · p95 / avg per API · s
     type: timeseries
     palette: classic
+    latency_slo: true
     fill_opacity: 40
     legend_placement: right
     legend_mode: list

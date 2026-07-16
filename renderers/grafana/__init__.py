@@ -1,4 +1,4 @@
-"""Grafana dashboard JSON renderer (output side) — colorful SRE-style panels."""
+"""Grafana dashboard JSON renderer (output side) — colorful dark-theme SRE panels."""
 
 from __future__ import annotations
 
@@ -10,12 +10,38 @@ _PACK_QUERY = (
     'query_result(label_replace(vector(1), "v", "$service_pack", "", ""))'
 )
 
-# Semantic palette
-_GREEN = "dark-green"
-_YELLOW = "dark-yellow"
-_RED = "dark-red"
-_BLUE = "dark-blue"
-_ORANGE = "dark-orange"
+# Bright Grafana colors — readable on dark dashboard backgrounds
+_GREEN = "#73BF69"
+_YELLOW = "#FADE2A"
+_ORANGE = "#FF9830"
+_RED = "#F2495C"
+_BLUE = "#5794F2"
+_PURPLE = "#B877D9"
+_CYAN = "#8AB8FF"
+_TEAL = "#37872D"  # deeper green for contrast accents
+
+# Template color: name → bright hex (legacy dark-* names remapped)
+_FIXED_COLORS = {
+    "dark-blue": _BLUE,
+    "dark-green": _GREEN,
+    "dark-red": _RED,
+    "dark-orange": _ORANGE,
+    "dark-purple": _PURPLE,
+    "dark-yellow": _YELLOW,
+    "blue": _BLUE,
+    "green": _GREEN,
+    "red": _RED,
+    "orange": _ORANGE,
+    "purple": _PURPLE,
+    "yellow": _YELLOW,
+    "cyan": _CYAN,
+}
+
+
+def _fixed_color(name: str | None) -> str:
+    if not name:
+        return _BLUE
+    return _FIXED_COLORS.get(name, name)
 
 
 def _thresholds(steps: list[dict[str, Any]]) -> dict[str, Any]:
@@ -24,12 +50,15 @@ def _thresholds(steps: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
-    color = panel.get("color") or _BLUE
-    fill = float(panel.get("fill_opacity", 55))
+    color = _fixed_color(panel.get("color") or _BLUE)
+    fill = float(panel.get("fill_opacity", 45))
+    # Cap fill so stacked areas stay readable on dark theme
+    fill = min(fill, 55)
     palette = panel.get("palette") or "classic"
     if palette == "fixed":
         color_cfg: dict[str, Any] = {"mode": "fixed", "fixedColor": color}
     else:
+        # Classic multi-series = distinct bright lines on dark bg
         color_cfg = {"mode": "palette-classic"}
     legend_fmt = panel.get("legend") or "__auto"
     draw_style = panel.get("draw_style") or "line"
@@ -37,6 +66,7 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     stacking: dict[str, Any] = {"mode": "none", "group": "A"}
     if stack in (True, "normal"):
         stacking = {"mode": "normal", "group": "A"}
+        fill = min(fill, 50)
     elif stack == "percent":
         stacking = {"mode": "percent", "group": "A"}
 
@@ -44,17 +74,22 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "drawStyle": draw_style,
         "lineInterpolation": "smooth",
         "barAlignment": 0,
-        "lineWidth": 3 if draw_style == "line" else 1,
+        "lineWidth": 2 if draw_style == "line" else 1,
         "fillOpacity": fill,
-        "gradientMode": "scheme" if palette != "fixed" else "opacity",
-        "showPoints": "never",
+        "gradientMode": "opacity",
+        "showPoints": "auto",
+        "pointSize": 5,
         "spanNulls": True,
         "axisBorderShow": False,
         "axisSoftMin": 0,
         "axisLabel": "",
+        "axisColorMode": "text",
+        "axisGridShow": True,
         "scaleDistribution": {"type": "linear"},
         "stacking": stacking,
         "thresholdsStyle": {"mode": "off"},
+        "insertNulls": False,
+        "hideFrom": {"tooltip": False, "viz": False, "legend": False},
     }
 
     legend_mode = panel.get("legend_mode") or "list"
@@ -65,9 +100,21 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "color": color_cfg,
         "custom": custom,
         "unit": panel.get("unit") or "short",
+        "noValue": "—",
     }
     if panel.get("decimals") is not None:
         defaults["decimals"] = panel["decimals"]
+    if panel.get("latency_slo"):
+        defaults["thresholds"] = _thresholds(
+            [
+                {"color": _GREEN, "value": None},
+                {"color": _YELLOW, "value": 1},
+                {"color": _ORANGE, "value": 5},
+                {"color": _RED, "value": 20},
+            ]
+        )
+        custom["thresholdsStyle"] = {"mode": "line+area"}
+        custom["lineWidth"] = 2
 
     return {
         "datasource": ds,
@@ -83,7 +130,7 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "placement": legend_placement,
                 "showLegend": True,
                 "calcs": calcs,
-                "width": 160 if legend_placement == "right" else 0,
+                "width": 180 if legend_placement == "right" else 0,
             },
             "tooltip": {"mode": "multi", "sort": "desc"},
         },
@@ -98,31 +145,32 @@ def _timeseries_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             }
         ],
         "title": panel["title"],
-        "transparent": bool(panel.get("transparent") or False),
+        "transparent": False,
         "type": "timeseries",
     }
 
 
 def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     ds = panel["datasource"]
-    theme = panel.get("theme") or "health"  # health | neutral | restarts | ratio | decision
+    theme = panel.get("theme") or "health"
     mappings = list(panel.get("mappings") or [])
-    # Soft modern KPIs: value-colored by default; solid background only for decision / scrape.
-    color_mode = "value"
+    # Colorful dark-theme KPIs: soft background wash + sparkline
+    color_mode = "background"
     if theme == "restarts":
         steps = [
             {"color": _GREEN, "value": None},
             {"color": _YELLOW, "value": 1},
+            {"color": _ORANGE, "value": 2},
             {"color": _RED, "value": 3},
         ]
     elif theme == "ratio":
         steps = [
             {"color": _GREEN, "value": None},
             {"color": _YELLOW, "value": 0.01},
+            {"color": _ORANGE, "value": 0.03},
             {"color": _RED, "value": 0.05},
         ]
     elif theme == "decision":
-        color_mode = "background"
         steps = [
             {"color": _RED, "value": None},
             {"color": _YELLOW, "value": 1},
@@ -140,9 +188,34 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 }
             ]
     elif theme == "neutral":
-        steps = [{"color": "semi-dark-blue", "value": None}]
-    else:  # health / up — keep readable scrape status
-        color_mode = "background"
+        steps = [{"color": _BLUE, "value": None}]
+    elif theme == "latency":
+        steps = [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _ORANGE, "value": 5},
+            {"color": _RED, "value": 20},
+        ]
+    elif theme == "slow_count":
+        steps = [
+            {"color": _GREEN, "value": None},
+            {"color": _YELLOW, "value": 1},
+            {"color": _RED, "value": 3},
+        ]
+    elif theme == "success_ratio":
+        steps = [
+            {"color": _RED, "value": None},
+            {"color": _ORANGE, "value": 0.85},
+            {"color": _YELLOW, "value": 0.95},
+            {"color": _GREEN, "value": 0.99},
+        ]
+    elif theme == "cyan":
+        steps = [{"color": _CYAN, "value": None}]
+    elif theme == "purple":
+        steps = [{"color": _PURPLE, "value": None}]
+    elif theme == "teal":
+        steps = [{"color": _GREEN, "value": None}]
+    else:  # health / up
         steps = [
             {"color": _RED, "value": None},
             {"color": _GREEN, "value": 1},
@@ -160,6 +233,7 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "thresholds": _thresholds(steps),
                 "color": {"mode": "thresholds"},
                 "mappings": mappings,
+                "noValue": "—",
             },
             "overrides": [],
         },
@@ -167,12 +241,17 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "id": panel_id,
         "options": {
             "colorMode": color_mode,
-            "graphMode": "area" if theme != "decision" else "none",
+            "graphMode": "none" if theme == "decision" else "area",
             "justifyMode": "center",
             "orientation": "auto",
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
-            "textMode": "auto",
+            # Decision: show only ACT/WATCH/GOOD (not "Decision" name again)
+            "textMode": "value" if theme == "decision" else "auto",
             "wideLayout": True,
+            "text": {
+                "titleSize": 12,
+                "valueSize": 42 if theme == "decision" else 28,
+            },
         },
         "targets": [
             {
@@ -183,6 +262,7 @@ def _stat_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             }
         ],
         "title": panel["title"],
+        "transparent": False,
         "type": "stat",
     }
 
@@ -195,6 +275,7 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
     if panel.get("theme") == "score":
         steps = [
             {"color": _RED, "value": None},
+            {"color": _ORANGE, "value": 40},
             {"color": _YELLOW, "value": 50},
             {"color": _GREEN, "value": 80},
         ]
@@ -205,6 +286,7 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         steps = [
             {"color": _GREEN, "value": None},
             {"color": _YELLOW, "value": 0.7},
+            {"color": _ORANGE, "value": 0.85},
             {"color": _RED, "value": 0.9},
         ]
     mappings = panel.get("mappings") or []
@@ -219,6 +301,7 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                 "thresholds": _thresholds(steps),
                 "color": {"mode": "thresholds"},
                 "mappings": mappings,
+                "noValue": "—",
             },
             "overrides": [],
         },
@@ -226,11 +309,9 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
         "id": panel_id,
         "options": {
             "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
+            "needle": False,
             "showThresholdLabels": False,
             "showThresholdMarkers": True,
-            "sizing": "auto",
-            "minVizHeight": 80,
-            "minVizWidth": 80,
         },
         "targets": [
             {
@@ -241,6 +322,7 @@ def _gauge_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
             }
         ],
         "title": panel["title"],
+        "transparent": False,
         "type": "gauge",
     }
 
@@ -389,11 +471,11 @@ def _table_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                     {
                         "id": "thresholds",
                         "value": _thresholds(
-                            [{"color": _GREEN, "value": None}, {"color": "semi-dark-green", "value": 1}]
+                            [{"color": _GREEN, "value": None}, {"color": "#56A64B", "value": 1}]
                         ),
                     },
                     {"id": "color", "value": {"mode": "thresholds"}},
-                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}},
                 ],
             },
             {
@@ -411,7 +493,7 @@ def _table_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                         ),
                     },
                     {"id": "color", "value": {"mode": "thresholds"}},
-                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}},
                 ],
             },
             {
@@ -429,7 +511,7 @@ def _table_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                         ),
                     },
                     {"id": "color", "value": {"mode": "thresholds"}},
-                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}},
                 ],
             },
             {
@@ -443,12 +525,13 @@ def _table_panel(panel: dict[str, Any], panel_id: int) -> dict[str, Any]:
                             [
                                 {"color": _GREEN, "value": None},
                                 {"color": _YELLOW, "value": 0.2},
-                                {"color": _RED, "value": 1},
+                                {"color": _ORANGE, "value": 1},
+                                {"color": _RED, "value": 5},
                             ]
                         ),
                     },
                     {"id": "color", "value": {"mode": "thresholds"}},
-                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "basic"}},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}},
                 ],
             },
             {

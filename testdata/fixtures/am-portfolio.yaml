@@ -24,6 +24,7 @@ signals:
     - http_request_rate
     - http_requests_by_uri
     - http_latency_p95
+    - http_latency_avg_by_uri
     - http_latency_p95_by_uri
     - http_latency_p50
     - http_latency_p75
@@ -52,6 +53,9 @@ signals:
     - hikari_connections_pending
     - hikari_connections_idle
     - hikari_connections_timeout
+    - portfolio_users_total
+    - portfolio_portfolios_total
+    - portfolio_holdings_total
     - jvm_heap_used
     - jvm_heap_max
     - jvm_nonheap_used

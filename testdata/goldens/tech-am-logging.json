@@ -56,11 +56,11 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-red",
+                "color": "#F2495C",
                 "value": null
               },
               {
-                "color": "dark-green",
+                "color": "#73BF69",
                 "value": 1
               }
             ]
@@ -68,7 +68,8 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": []
+          "mappings": [],
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -92,7 +93,11 @@
           "values": false
         },
         "textMode": "auto",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
       },
       "targets": [
         {
@@ -106,6 +111,7 @@
         }
       ],
       "title": "Scrape up",
+      "transparent": false,
       "type": "stat"
     },
     {
@@ -121,15 +127,19 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "dark-green",
+                "color": "#73BF69",
                 "value": null
               },
               {
-                "color": "dark-yellow",
+                "color": "#FADE2A",
                 "value": 1
               },
               {
-                "color": "dark-red",
+                "color": "#FF9830",
+                "value": 2
+              },
+              {
+                "color": "#F2495C",
                 "value": 3
               }
             ]
@@ -137,7 +147,8 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": []
+          "mappings": [],
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -149,7 +160,7 @@
       },
       "id": 4,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "center",
         "orientation": "auto",
@@ -161,7 +172,11 @@
           "values": false
         },
         "textMode": "auto",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
       },
       "targets": [
         {
@@ -175,6 +190,7 @@
         }
       ],
       "title": "Restarts",
+      "transparent": false,
       "type": "stat"
     },
     {
@@ -190,7 +206,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "semi-dark-blue",
+                "color": "#5794F2",
                 "value": null
               }
             ]
@@ -198,7 +214,8 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": []
+          "mappings": [],
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -210,7 +227,7 @@
       },
       "id": 5,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "center",
         "orientation": "auto",
@@ -222,7 +239,11 @@
           "values": false
         },
         "textMode": "auto",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
       },
       "targets": [
         {
@@ -236,6 +257,7 @@
         }
       ],
       "title": "CPU (cores)",
+      "transparent": false,
       "type": "stat"
     },
     {
@@ -251,7 +273,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "semi-dark-blue",
+                "color": "#73BF69",
                 "value": null
               }
             ]
@@ -259,7 +281,8 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": []
+          "mappings": [],
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -271,7 +294,7 @@
       },
       "id": 6,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "center",
         "orientation": "auto",
@@ -283,7 +306,11 @@
           "values": false
         },
         "textMode": "auto",
-        "wideLayout": true
+        "wideLayout": true,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 28
+        }
       },
       "targets": [
         {
@@ -297,6 +324,7 @@
         }
       ],
       "title": "Memory",
+      "transparent": false,
       "type": "stat"
     },
     {
@@ -342,20 +370,23 @@
         "defaults": {
           "color": {
             "mode": "fixed",
-            "fixedColor": "dark-orange"
+            "fixedColor": "#FF9830"
           },
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "smooth",
             "barAlignment": 0,
-            "lineWidth": 3,
+            "lineWidth": 2,
             "fillOpacity": 35.0,
             "gradientMode": "opacity",
-            "showPoints": "never",
+            "showPoints": "auto",
+            "pointSize": 5,
             "spanNulls": true,
             "axisBorderShow": false,
             "axisSoftMin": 0,
             "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -365,9 +396,16 @@
             },
             "thresholdsStyle": {
               "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
             }
           },
-          "unit": "short"
+          "unit": "short",
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -387,7 +425,7 @@
             "lastNotNull",
             "max"
           ],
-          "width": 160
+          "width": 180
         },
         "tooltip": {
           "mode": "multi",
@@ -420,20 +458,23 @@
         "defaults": {
           "color": {
             "mode": "fixed",
-            "fixedColor": "dark-blue"
+            "fixedColor": "#5794F2"
           },
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "smooth",
             "barAlignment": 0,
-            "lineWidth": 3,
+            "lineWidth": 2,
             "fillOpacity": 35.0,
             "gradientMode": "opacity",
-            "showPoints": "never",
+            "showPoints": "auto",
+            "pointSize": 5,
             "spanNulls": true,
             "axisBorderShow": false,
             "axisSoftMin": 0,
             "axisLabel": "",
+            "axisColorMode": "text",
+            "axisGridShow": true,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -443,9 +484,16 @@
             },
             "thresholdsStyle": {
               "mode": "off"
+            },
+            "insertNulls": false,
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
             }
           },
-          "unit": "bytes"
+          "unit": "bytes",
+          "noValue": "—"
         },
         "overrides": []
       },
@@ -465,7 +513,7 @@
             "lastNotNull",
             "max"
           ],
-          "width": 160
+          "width": 180
         },
         "tooltip": {
           "mode": "multi",

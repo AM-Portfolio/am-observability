@@ -36,10 +36,11 @@ def _adapter_supports(ctx: Context, adapter: str, kind: str) -> bool:
 def _panel_candidates(
     ctx: Context,
     *,
+    template: dict[str, Any],
     uses: set[str] | None,
     warnings: list[str],
 ) -> list[dict[str, Any]]:
-    """Build laid-out panel IR from the technical template."""
+    """Build laid-out panel IR from a dashboard template."""
     panels_out: list[dict[str, Any]] = []
     cursor_y = 0
     cursor_x = 0
@@ -104,7 +105,7 @@ def _panel_candidates(
             }
         )
 
-    for panel in ctx.technical_template.get("panels") or []:
+    for panel in template.get("panels") or []:
         ptype = panel.get("type") or ""
         if ptype == "row":
             pending_row = {
@@ -126,10 +127,8 @@ def _panel_candidates(
                 "height": int(panel.get("height") or 3),
             }
             if pending_row is not None:
-                # Hold until a signal in this section is accepted
                 pending_texts.append(raw)
             else:
-                # Section already open — emit immediately (e.g. action checklist)
                 _emit_text_now(panel)
             continue
 
@@ -189,6 +188,7 @@ def _panel_candidates(
                         "legend_placement",
                         "legend_calcs",
                         "transparent",
+                        "latency_slo",
                     )
                     if k in panel
                 },
@@ -219,7 +219,9 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
     env = env_from_namespace(namespace)
     uses = set((manifest.get("signals") or {}).get("uses") or [])
 
-    panels_out = _panel_candidates(ctx, uses=uses, warnings=warnings)
+    panels_out = _panel_candidates(
+        ctx, template=ctx.technical_template, uses=uses, warnings=warnings
+    )
 
     title_tpl = ctx.technical_template.get("title") or "Technical / {{ service }}"
     title = title_tpl.replace("{{ service }}", service).replace("{{service}}", service)
@@ -249,10 +251,6 @@ def compose(manifest: dict[str, Any], ctx: Context) -> tuple[dict[str, Any], lis
         },
     }
 
-    functional = manifest.get("functional") or []
-    if functional:
-        warnings.append("functional KPIs requested but Phase 1 publisher skips func-* dashboards")
-
     return ir, warnings
 
 
@@ -271,8 +269,9 @@ def compose_shared(
     namespace = default["namespace"]
     env = env_from_namespace(namespace)
 
-    # Full technical template — filter at Grafana via $service/$app/$application
-    panels_out = _panel_candidates(ctx, uses=None, warnings=warnings)
+    panels_out = _panel_candidates(
+        ctx, template=ctx.technical_template, uses=None, warnings=warnings
+    )
 
     ir = {
         "apiVersion": "am.obs/v1",
@@ -288,6 +287,50 @@ def compose_shared(
         "application": default["application"],
         "env": env,
         "tags": ["am", "technical", "shared", env],
+        "panels": panels_out,
+        "service_targets": targets,
+        "vars": {
+            "service": default["service"],
+            "namespace": namespace,
+            "app": default["app"],
+            "application": default["application"],
+            "env": env,
+        },
+    }
+    return ir, warnings
+
+
+def compose_shared_functional(
+    targets: list[dict[str, str]],
+    ctx: Context,
+    *,
+    default: dict[str, str] | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    """One Functional / Services product dashboard (Service dropdown)."""
+    warnings: list[str] = []
+    if not targets:
+        return {}, ["no service targets for functional dashboard"]
+
+    default = default or targets[0]
+    namespace = default["namespace"]
+    env = env_from_namespace(namespace)
+
+    panels_out = _panel_candidates(
+        ctx, template=ctx.functional_template, uses=None, warnings=warnings
+    )
+
+    ir = {
+        "apiVersion": "am.obs/v1",
+        "kind": "Dashboard",
+        "uid": "func-am-services",
+        "title": "Functional / Services",
+        "folder": ctx.functional_template.get("folder") or "AM / Functional",
+        "service": default["service"],
+        "namespace": namespace,
+        "app": default["app"],
+        "application": default["application"],
+        "env": env,
+        "tags": ["am", "functional", "shared", env],
         "panels": panels_out,
         "service_targets": targets,
         "vars": {
