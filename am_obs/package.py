@@ -17,6 +17,7 @@ SHARED_DASHBOARD_PREFIXES = (
     "tech-am-services",
     "func-am-services",
     "platform-",
+    "product-",
 )
 
 
@@ -74,7 +75,7 @@ def package_release(version: str, *, root: Path | None = None) -> Path:
         "apiVersion": "am.obs/v1",
         "kind": "ReleaseCompat",
         "version": version,
-        "shared_uids": ["tech-am-services", "func-am-services"],
+        "shared_uids": ["tech-am-services", "func-am-services", "product-am-users"],
         "min_compose_cli": "1",
         "dashboards_zip": zip_path.name,
         "sha256": sha,
