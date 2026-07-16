@@ -333,8 +333,8 @@ panels:
     width: 8
     height: 5
 
-  - id: trade_portfolios_total
-    signal: trade_portfolios_total
+  - id: trade_portfolios
+    signal: trade_portfolios
     title: Portfolios (trades)
     type: bargauge
     theme: purple
@@ -345,8 +345,8 @@ panels:
     width: 8
     height: 5
 
-  - id: trade_active_portfolios_total
-    signal: trade_active_portfolios_total
+  - id: trade_active_portfolios
+    signal: trade_active_portfolios
     title: Active Portfolios (trades)
     type: bargauge
     theme: green

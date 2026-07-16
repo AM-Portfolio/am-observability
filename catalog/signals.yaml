@@ -740,6 +740,54 @@ signals:
           or vector(0)
         legend: "Holdings"
 
+  trade_processed_total:
+    id: trade_processed_total
+    kind: metric
+    description: Total processed trades (domain counter)
+    panel_type: stat
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(
+            trade_processed_total{application="$application",namespace="$namespace"}
+          )
+          or vector(0)
+        legend: "Total Trades"
+
+  trade_portfolios_total:
+    id: trade_portfolios_total
+    kind: metric
+    description: Total portfolios (domain gauge)
+    panel_type: stat
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(
+            trade_portfolios_total{application="$application",namespace="$namespace"}
+          )
+          or vector(0)
+        legend: "Portfolios"
+
+  trade_active_portfolios_total:
+    id: trade_active_portfolios_total
+    kind: metric
+    description: Total active portfolios (domain gauge)
+    panel_type: stat
+    adapters: [prometheus]
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: >-
+          sum(
+            trade_active_portfolios_total{application="$application",namespace="$namespace"}
+          )
+          or vector(0)
+        legend: "Active Portfolios"
+
   # ── JVM / process (OOM / CPU pressure) ──────────────────────
   jvm_heap_used:
     id: jvm_heap_used

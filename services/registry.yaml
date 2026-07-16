@@ -11,3 +11,8 @@ services:
     path: observability.yaml
     ref: main
     enabled: false
+  - id: am-trade-management
+    repo: am-trade-management
+    path: observability.yaml
+    ref: main
+    enabled: true
