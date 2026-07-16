@@ -17,6 +17,7 @@ GRAFANA_TEMPLATE_VARS = frozenset(
         "pod",
         "topic",
         "consumergroup",
+        "platform",
     }
 )
 

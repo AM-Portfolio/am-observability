@@ -275,50 +275,63 @@ panels:
   - id: row_domain
     type: row
     title: "5 · Domain KPIs (this service)"
-    collapsed: true
+    collapsed: false
 
   - id: text_domain
     type: text
     title: ""
     width: 24
-    height: 2
+    height: 3
     content: |
-      **Domain** — Business counts when this service publishes gauges. Clean bar tiles (no raw PromQL). Shows **0** when absent.
+      **Domain** — Business counts when this service publishes gauges (select **Service=portfolio-app** for portfolio tiles).
+      Shows **0** when meters are absent. For Flutter portfolio usage (screens/actions), open **Product / Users** §4.
 
   - id: portfolio_users_total
     signal: portfolio_users_total
-    title: Users (owners)
+    title: Portfolio · owners
     type: bargauge
     theme: cyan
     unit: short
     decimals: 0
     orientation: horizontal
     display_mode: gradient
-    width: 8
+    width: 6
     height: 5
 
   - id: portfolio_portfolios_total
     signal: portfolio_portfolios_total
-    title: Portfolios
+    title: Portfolio · documents
     type: bargauge
     theme: purple
     unit: short
     decimals: 0
     orientation: horizontal
     display_mode: gradient
-    width: 8
+    width: 6
     height: 5
 
   - id: portfolio_holdings_total
     signal: portfolio_holdings_total
-    title: Holdings
+    title: Portfolio · holdings
     type: bargauge
     theme: teal
     unit: short
     decimals: 0
     orientation: horizontal
     display_mode: gradient
-    width: 8
+    width: 6
+    height: 5
+
+  - id: portfolio_stream_publish_total
+    signal: portfolio_stream_publish_total
+    title: Portfolio · stream publishes
+    type: bargauge
+    theme: cyan
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 6
     height: 5
 
   - id: websocket_sessions_active
@@ -374,18 +387,6 @@ panels:
     title: Widget publishes
     type: bargauge
     theme: purple
-    unit: short
-    decimals: 0
-    orientation: horizontal
-    display_mode: gradient
-    width: 8
-    height: 5
-
-  - id: portfolio_stream_publish_total
-    signal: portfolio_stream_publish_total
-    title: Portfolio streams
-    type: bargauge
-    theme: teal
     unit: short
     decimals: 0
     orientation: horizontal

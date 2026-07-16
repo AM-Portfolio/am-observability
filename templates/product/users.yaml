@@ -1,0 +1,454 @@
+apiVersion: am.obs/v1
+kind: DashboardTemplate
+id: product-users
+uid: product-am-users
+title: "Product / Users"
+folder: "AM / Product"
+
+panels:
+  - id: row_intro
+    type: row
+    title: "0 · How to read"
+
+  - id: text_intro
+    type: text
+    title: ""
+    width: 24
+    height: 4
+    content: |
+      **Product / Users** — Flutter first-party telemetry (`job=am-product-telemetry`) → am-logging → Loki.
+      **Platform** = `web` / `android` / `ios`. **DAU** ≈ unique `anon_id`; **Logged-in** ≈ unique `user_id`.
+      **Sections** = portfolio · trade · market · docs · ai · dashboard · auth · profile.
+      Filter **Env** + **Platform**. Empty = ingest/UI not deployed yet. This board ≠ Technical / Functional (backend).
+
+  - id: row_kpis
+    type: row
+    title: "1 · Reach — who is here?"
+
+  - id: text_kpis
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Reach** — Unique devices, logged-in users, sessions, and event volume for the selected range.
+
+  - id: product_dau
+    signal: product_dau
+    title: Unique · anon_id
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_logged_in_users
+    signal: product_logged_in_users
+    title: Logged-in · user_id
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_sessions
+    signal: product_sessions
+    title: Sessions
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_events_total
+    signal: product_events_total
+    title: Events · total
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_screen_views_total
+    signal: product_screen_views_total
+    title: screen_view
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: product_feature_actions_total
+    signal: product_feature_actions_total
+    title: feature_action
+    type: stat
+    unit: short
+    width: 4
+    height: 5
+
+  - id: row_platform
+    type: row
+    title: "2 · Web vs Android vs iOS"
+
+  - id: text_platform
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Platform** — Device mix for users, sessions, and raw events. Use the Platform filter to isolate one OS.
+
+  - id: product_users_by_platform
+    signal: product_users_by_platform
+    title: Users · by platform
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 8
+
+  - id: product_logged_in_by_platform
+    signal: product_logged_in_by_platform
+    title: Logged-in · by platform
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 8
+
+  - id: product_users_by_platform_pie
+    signal: product_users_by_platform
+    title: Users · mix
+    type: piechart
+    pie_type: donut
+    width: 8
+    height: 8
+
+  - id: product_events_by_platform
+    signal: product_events_by_platform
+    title: Events · by platform
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 12
+    height: 9
+
+  - id: product_sessions_by_platform
+    signal: product_sessions_by_platform
+    title: Sessions · by platform
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 12
+    height: 9
+
+  - id: product_events_by_type
+    signal: product_events_by_type
+    title: Event types · mix
+    type: piechart
+    pie_type: donut
+    width: 8
+    height: 8
+
+  - id: product_events_by_type_rate
+    signal: product_events_by_type_rate
+    title: Event types · trend
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 45
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 16
+    height: 8
+
+  - id: row_sections
+    type: row
+    title: "3 · Sections liked (screen_view)"
+
+  - id: text_sections
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Sections** — Where people spend attention. Pie = mix; bars = unique visitors per section; top screens = exact routes.
+
+  - id: product_screen_views_by_section
+    signal: product_screen_views_by_section
+    title: Sections · views mix
+    type: piechart
+    pie_type: donut
+    width: 8
+    height: 9
+
+  - id: product_users_by_section
+    signal: product_users_by_section
+    title: Sections · unique visitors
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 9
+
+  - id: product_top_screens
+    signal: product_top_screens
+    title: Top screens
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 8
+    height: 9
+
+  - id: product_screen_views_rate
+    signal: product_screen_views_rate
+    title: Sections · view rate
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 24
+    height: 9
+
+  - id: row_portfolio
+    type: row
+    title: "4 · Portfolio deep-dive"
+
+  - id: text_portfolio
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Portfolio** — Flutter `section=portfolio` only (heatmap, holdings, baskets, overview, …). Pair with Functional domain gauges when Service=portfolio-app.
+
+  - id: product_portfolio_views
+    signal: product_portfolio_views
+    title: Portfolio · views
+    type: stat
+    unit: short
+    width: 6
+    height: 5
+
+  - id: product_portfolio_users
+    signal: product_portfolio_users
+    title: Portfolio · unique users
+    type: stat
+    unit: short
+    width: 6
+    height: 5
+
+  - id: product_trade_views
+    signal: product_trade_views
+    title: Trade · views
+    type: stat
+    unit: short
+    width: 3
+    height: 5
+
+  - id: product_market_views
+    signal: product_market_views
+    title: Market · views
+    type: stat
+    unit: short
+    width: 3
+    height: 5
+
+  - id: product_ai_views
+    signal: product_ai_views
+    title: AI · views
+    type: stat
+    unit: short
+    width: 3
+    height: 5
+
+  - id: product_docs_views
+    signal: product_docs_views
+    title: Docs · views
+    type: stat
+    unit: short
+    width: 3
+    height: 5
+
+  - id: product_portfolio_screens
+    signal: product_portfolio_screens
+    title: Portfolio · top screens
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 10
+
+  - id: product_portfolio_actions
+    signal: product_portfolio_actions
+    title: Portfolio · feature actions
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 10
+
+  - id: product_portfolio_views_rate
+    signal: product_portfolio_views_rate
+    title: Portfolio · views by platform
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 12
+    height: 9
+
+  - id: product_portfolio_api_p95
+    signal: product_portfolio_api_p95
+    title: Portfolio · client API p95 ms
+    type: timeseries
+    palette: classic
+    unit: ms
+    width: 12
+    height: 9
+
+  - id: row_actions
+    type: row
+    title: "5 · Feature actions"
+
+  - id: text_actions
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **Actions** — From `CommonLogger.userAction` → `feature_action`. Shows what people tap/do inside sections.
+
+  - id: product_feature_actions_by_action
+    signal: product_feature_actions_by_action
+    title: Top actions
+    type: bargauge
+    unit: short
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 10
+
+  - id: product_feature_actions_rate
+    signal: product_feature_actions_rate
+    title: Actions · by section
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 40
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 12
+    height: 10
+
+  - id: row_rum
+    type: row
+    title: "6 · Client speed (RUM)"
+
+  - id: text_rum
+    type: text
+    title: ""
+    width: 24
+    height: 2
+    content: |
+      **RUM** — Client-perceived API latency + boot time. Slow here with fast backend = network/UI; slow both = server.
+
+  - id: product_api_timing_p95
+    signal: product_api_timing_p95
+    title: API timing · p95 ms · platform
+    type: timeseries
+    palette: classic
+    unit: ms
+    width: 12
+    height: 9
+
+  - id: product_api_timing_avg_by_section
+    signal: product_api_timing_avg_by_section
+    title: API timing · avg ms · section
+    type: timeseries
+    palette: classic
+    unit: ms
+    width: 12
+    height: 9
+
+  - id: product_api_timing_slow_paths
+    signal: product_api_timing_slow_paths
+    title: Slowest client API paths · avg ms
+    type: bargauge
+    theme: latency
+    unit: ms
+    orientation: horizontal
+    display_mode: gradient
+    show_all_values: true
+    width: 12
+    height: 10
+
+  - id: product_api_errors_by_status
+    signal: product_api_errors_by_status
+    title: Client API · by status
+    type: timeseries
+    palette: classic
+    stack: true
+    fill_opacity: 45
+    legend_placement: right
+    legend_mode: list
+    unit: short
+    width: 12
+    height: 10
+
+  - id: product_boot_rum_p95
+    signal: product_boot_rum_p95
+    title: Boot · p95 ms · platform
+    type: timeseries
+    palette: classic
+    unit: ms
+    width: 12
+    height: 8
+
+  - id: product_boot_rum_avg
+    signal: product_boot_rum_avg
+    title: Boot · avg ms · platform
+    type: bargauge
+    theme: latency
+    unit: ms
+    orientation: horizontal
+    display_mode: gradient
+    width: 12
+    height: 8
+
+  - id: row_act
+    type: row
+    title: "7 · Act"
+
+  - id: text_act
+    type: text
+    title: Action checklist
+    width: 24
+    height: 5
+    content: |
+      **If portfolio views high but Functional portfolio gauges are 0** → meters not published / wrong Service selected.
+      **If Android/iOS empty** → only web builds shipping telemetry, or platform label missing.
+      **If API p95 high only on client** → check path bars here, then Tempo on Technical for that URI.
+      **If feature_action empty** → wire more `CommonLogger.userAction` call sites (P3).
+      **If DAU flat** → confirm `/logging` ingress + Flutter `analyticsEnabled` + sink URL.

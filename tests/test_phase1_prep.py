@@ -58,12 +58,15 @@ def test_metrics_application_as_grafana_var():
     assert by_name["application"]["hide"] == 0
     assert by_name["application"]["includeAll"] is False
     assert "label_values(" in by_name["application"]["query"]
-    assert "jvm_memory_used_bytes" in by_name["application"]["query"]
+    assert 'application=~".+"' in by_name["application"]["query"]
+    assert "jvm_memory_used_bytes" not in by_name["application"]["query"]
     assert by_name["pod"]["type"] == "query"
     assert by_name["pod"]["hide"] == 2
     assert by_name["pod"]["multi"] is True
     assert by_name["pod"]["includeAll"] is True
     assert "allValue" not in by_name["pod"]
+    assert "jvm_memory_used_bytes" not in by_name["pod"]["query"]
+    assert 'application="$application"' in by_name["pod"]["query"]
     assert by_name["application"]["current"]["value"] == "portfolio-app"
     # Section rows + API table + logs at bottom (errors before all logs)
     types = [p["type"] for p in dashboard["panels"]]
@@ -174,6 +177,24 @@ def test_functional_shared_published():
     assert rc == 0
     assert (ROOT / "dist" / "grafana" / "func-am-services.yaml").is_file()
     assert not (ROOT / "dist" / "grafana" / "func-am-portfolio.yaml").exists()
+
+
+def test_product_users_dashboard_published():
+    """Shared generate publishes Product / Users with Loki platform panels."""
+    rc = generate()
+    assert rc == 0
+    report = json.loads((ROOT / "dist" / "report.json").read_text(encoding="utf-8"))
+    assert "product-am-users" in report["passed"]
+    path = ROOT / "dist" / "grafana" / "product-am-users.yaml"
+    assert path.is_file()
+    text = path.read_text(encoding="utf-8")
+    assert "Product / Users" in text
+    assert "am-product-telemetry" in text
+    assert "by (platform)" in text
+    assert "by (section)" in text
+    assert "count_over_time" in text
+    assert '"type": "loki"' in text or "type: loki" in text
+    assert 'grafana_folder: "product"' in text or "product" in text
 
 
 def test_platform_dashboards_generated():

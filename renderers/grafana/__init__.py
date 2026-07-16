@@ -950,9 +950,80 @@ def _templating_platform(ir: dict[str, Any]) -> dict[str, Any]:
     return {"list": variables}
 
 
+def _var_loki_label(
+    name: str,
+    label: str,
+    *,
+    query: str,
+    datasource_uid: str = "loki",
+    all_value: str | None = ".+",
+    multi: bool = True,
+    hide: int = 0,
+    include_all: bool = True,
+    current: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Loki label_values dropdown for product telemetry filters."""
+    var: dict[str, Any] = {
+        "name": name,
+        "label": label,
+        "type": "query",
+        "hide": hide,
+        "multi": multi,
+        "includeAll": include_all,
+        "datasource": {"type": "loki", "uid": datasource_uid},
+        "definition": query,
+        "query": query,
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "options": [],
+    }
+    if include_all and all_value is not None:
+        var["allValue"] = all_value
+    if current is not None:
+        var["current"] = current
+    elif include_all:
+        var["current"] = {"selected": True, "text": "All", "value": "$__all"}
+    else:
+        var["current"] = {"selected": False, "text": "", "value": ""}
+    return var
+
+
+def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
+    """Env + Platform filters for Product / Users (Loki)."""
+    env = str((ir.get("vars") or {}).get("env") or ir.get("env") or "preprod")
+    ds_uid = "loki"
+    inputs = ir.get("bindings_inputs") or {}
+    logs = inputs.get("logs") or {}
+    if logs.get("datasource_uid"):
+        ds_uid = str(logs["datasource_uid"])
+
+    return {
+        "list": [
+            _var_custom(
+                "env",
+                "Env",
+                env,
+                ["preprod", "prod", "dev", "production", "development"],
+            ),
+            _var_loki_label(
+                "platform",
+                "Platform",
+                query='label_values({job="am-product-telemetry"}, platform)',
+                datasource_uid=ds_uid,
+                multi=True,
+                include_all=True,
+                all_value=".+",
+            ),
+        ]
+    }
+
+
 def _templating(ir: dict[str, Any]) -> dict[str, Any]:
     if ir.get("dashboard_kind") == "platform":
         return _templating_platform(ir)
+    if ir.get("dashboard_kind") == "product":
+        return _templating_product(ir)
 
     ns = ir["namespace"]
     application = str(ir.get("application") or ir.get("service") or "")
@@ -963,8 +1034,9 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
     if metrics.get("datasource_uid"):
         ds_uid = str(metrics["datasource_uid"])
 
-    # Plane A: Service = whatever Prometheus already knows (Micrometer application=).
-    # Pods are joined from the same series (kubernetes-pods scrape stamps pod=).
+    # Plane A: Service = any series that carries application= (Java JVM + Python
+    # Plane A metrics). Prefer a label selector over JVM-only discovery so
+    # am-logging / am-asrax-proxy appear alongside portfolio-app.
     app_current = (
         {"selected": True, "text": application, "value": application}
         if application
@@ -984,7 +1056,7 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 "Service",
                 query=(
                     "label_values("
-                    'jvm_memory_used_bytes{namespace="$namespace"}, application)'
+                    '{namespace="$namespace",application=~".+"}, application)'
                 ),
                 datasource_uid=ds_uid,
                 include_all=False,
@@ -999,8 +1071,7 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 "Pod",
                 query=(
                     "label_values("
-                    'jvm_memory_used_bytes{namespace="$namespace",'
-                    'application="$application"}, pod)'
+                    '{namespace="$namespace",application="$application"}, pod)'
                 ),
                 datasource_uid=ds_uid,
                 multi=True,
@@ -1008,14 +1079,14 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 include_all=True,
                 all_value=None,
             ),
-            # HTTP only — Method / API path do not affect dep panels
+            # HTTP only — Method / API path (Java Micrometer + Python Plane A)
             _var_prom_label(
                 "method",
                 "HTTP method",
                 query=(
                     "label_values("
-                    'http_server_requests_seconds_count{application="$application",'
-                    'namespace="$namespace",uri!~".*actuator.*"}, method)'
+                    '{__name__=~"http_server_requests_seconds_count|http_requests_total",'
+                    'application="$application",namespace="$namespace"}, method)'
                 ),
                 datasource_uid=ds_uid,
             ),
@@ -1094,11 +1165,12 @@ def render(ir: dict[str, Any]) -> dict[str, Any]:
         panels.append(renderer(panel, idx))
 
     tags = list(ir.get("tags") or [])
-    default_tags = ("am", "sre", "platform") if ir.get("dashboard_kind") == "platform" else (
-        "am",
-        "sre",
-        "technical",
-    )
+    if ir.get("dashboard_kind") == "platform":
+        default_tags = ("am", "sre", "platform")
+    elif ir.get("dashboard_kind") == "product":
+        default_tags = ("am", "product", "users")
+    else:
+        default_tags = ("am", "sre", "technical")
     for t in default_tags:
         if t not in tags:
             tags.append(t)

@@ -358,6 +358,46 @@ def compose_shared_functional(
     return ir, warnings
 
 
+def compose_shared_product(
+    ctx: Context,
+    *,
+    env: str = "preprod",
+) -> tuple[dict[str, Any], list[str]]:
+    """Product / Users dashboard — Flutter telemetry via Loki (no Service dropdown)."""
+    warnings: list[str] = []
+    template = ctx.product_template or {}
+    if not template:
+        return {}, ["product template missing"]
+
+    panels_out = _panel_candidates(ctx, template=template, uses=None, warnings=warnings)
+
+    ir = {
+        "apiVersion": "am.obs/v1",
+        "kind": "Dashboard",
+        "dashboard_kind": "product",
+        "uid": str(template.get("uid") or "product-am-users"),
+        "title": str(template.get("title") or "Product / Users"),
+        "folder": str(template.get("folder") or "AM / Product"),
+        "grafana_folder_path": "product",
+        "service": "am-modern-ui",
+        "namespace": "am-apps-preprod",
+        "app": "am-modern-ui",
+        "application": "am-modern-ui",
+        "env": env,
+        "tags": ["am", "product", "users", env],
+        "panels": panels_out,
+        "vars": {
+            "service": "am-modern-ui",
+            "namespace": "am-apps-preprod",
+            "app": "am-modern-ui",
+            "application": "am-modern-ui",
+            "env": env,
+            "platform": ".+",
+        },
+    }
+    return ir, warnings
+
+
 PLATFORM_NAMESPACES = [
     "infra",
     "infra-preprod",

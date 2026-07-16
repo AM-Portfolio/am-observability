@@ -14,10 +14,11 @@ from am_obs.compose import (
     compose_platform,
     compose_shared,
     compose_shared_functional,
+    compose_shared_product,
     target_from_manifest,
 )
 from am_obs.loader import Context, load_context
-from am_obs.paths import ROOT, load_yaml
+from am_obs.paths import ROOT, env_from_namespace, load_yaml
 from am_obs.publish import publish_grafana_configmap
 from am_obs.render import render_grafana
 from am_obs.validate import validate_manifest
@@ -261,6 +262,25 @@ def generate_shared(
                 path=str(func_path),
                 uid=func_dash.get("uid"),
                 warnings=fw1 + fw2,
+            )
+        )
+
+    # Product / Users — Flutter telemetry (Loki); independent of Java Service dropdown
+    prod_env = env_from_namespace(default["namespace"]) if default else "preprod"
+    prod_ir, pw1 = compose_shared_product(ctx, env=prod_env)
+    warnings_all.extend(pw1)
+    if prod_ir:
+        prod_adapted, pw2 = adapt(prod_ir, ctx)
+        warnings_all.extend(pw2)
+        prod_dash = render_grafana(prod_adapted)
+        prod_path = _publish_dashboard(prod_dash, ctx, folder_path="product")
+        results.append(
+            ServiceResult(
+                id="product-am-users",
+                ok=True,
+                path=str(prod_path),
+                uid=prod_dash.get("uid"),
+                warnings=pw1 + pw2,
             )
         )
 
