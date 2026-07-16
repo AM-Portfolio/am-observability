@@ -1003,8 +1003,8 @@ def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
             _var_custom(
                 "env",
                 "Env",
-                env,
-                ["preprod", "prod", "dev", "production", "development"],
+                env if env in {"dev", "preprod", "prod"} else "prod",
+                ["dev", "preprod", "prod"],
             ),
             _var_loki_label(
                 "platform",
