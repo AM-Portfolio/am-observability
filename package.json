@@ -6,6 +6,7 @@
   "engines": {
     "node": ">=18"
   },
+  
   "scripts": {
     "setup": "python -m pip install -r requirements.txt",
     "validate": "python gen.py validate",
