@@ -102,3 +102,107 @@ signals:
           ,namespace=\"$namespace\"}\n  or portfolio_holdings{application=\"$application\"\
           ,namespace=\"$namespace\"}\n) or vector(0)"
         legend: Holdings
+  websocket_sessions_active:
+    id: websocket_sessions_active
+    kind: metric
+    description: Active STOMP WebSocket sessions
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  websocket_sessions_active{application=\"$application\"\
+          ,namespace=\"$namespace\"}\n) or vector(0)"
+        legend: Sessions
+  stomp_connect_total:
+    id: stomp_connect_total
+    kind: metric
+    description: STOMP CONNECT attempts in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(stomp_connect_total{application=\"\
+          $application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Connects
+  stream_relay_messages_total:
+    id: stream_relay_messages_total
+    kind: metric
+    description: Kafka→WebSocket relay messages in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(stream_relay_messages_total{application=\"\
+          $application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Relays
+  orchestrator_events_total:
+    id: orchestrator_events_total
+    kind: metric
+    description: Demand-driven orchestrator events in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(orchestrator_events_total{application=\"\
+          $application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Orchestrator
+  dashboard_widget_publish_total:
+    id: dashboard_widget_publish_total
+    kind: metric
+    description: Dashboard widget Kafka publishes in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(dashboard_widget_publish_total{application=\"\
+          $application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Widgets
+  portfolio_stream_publish_total:
+    id: portfolio_stream_publish_total
+    kind: metric
+    description: Portfolio stream Kafka publishes in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(portfolio_stream_publish_total{application=\"\
+          $application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Streams
+  tool_invocations_total:
+    id: tool_invocations_total
+    kind: metric
+    description: Tool invocations in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(tool_invocations_total{application=\"\
+          $application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Tools
+  tool_duration_p95:
+    id: tool_duration_p95
+    kind: metric
+    description: Tool p95 duration (seconds)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "histogram_quantile(0.95,\n  sum by (le) (\n    rate(tool_duration_seconds_bucket{application=\"\
+          $application\",namespace=\"$namespace\"}[$__rate_interval])\n  )\n) or vector(0)"
+        legend: p95

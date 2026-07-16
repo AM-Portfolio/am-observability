@@ -70,10 +70,22 @@ python gen.py doctor path/to/observability.yaml
 
 ## Custom KPIs (`domain`)
 
-1. Prefer an existing catalog signal id, or request one in am-obs (sets `panel_type`: stat/timeseries/…).
-2. List under `signals.domain`.
-3. Emit the Micrometer meter.
-4. Visual type comes from the **catalog**, not from the service yaml.
+1. Prefer an existing **concept** catalog signal id (e.g. `websocket_sessions_active`), or request one in am-obs.
+   Do **not** invent service-prefixed shared signal ids (`gateway_*`, `mcp_*`, …).
+2. List under `signals.domain` (doctor / CI contract).
+3. Emit the **canonical** Micrometer name (dotted form matching the signal, e.g. `websocket.sessions.active`).
+4. If code must keep a local meter name, remap at runtime (Java / `am-observability-lib`) — Prometheus then scrapes the canonical series:
+
+```yaml
+am:
+  observability:
+    metrics:
+      map:
+        abc: websocket.sessions.active   # local → canonical (Micrometer dotted names)
+```
+
+5. Visual type comes from the **catalog**, not from the service yaml.
+6. Who measured it = Prometheus `application` label; what = concept signal id (+ optional map).
 
 ## Plane C (optional visibility)
 

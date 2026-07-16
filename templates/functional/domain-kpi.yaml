@@ -263,7 +263,7 @@ panels:
       **If worst avg ≥ 5s (or ≥ 20s)** → set **Method + API path** to that endpoint → open **Tempo** below → check Mongo/Redis/Kafka on **Technical / Services**.
       **If success ratio drops** → check 4xx (client/auth) vs 5xx (server) in section 3.
       **If visits flat / empty** → scrape/Micrometer missing (same platform blockers as Technical).
-      Domain tiles (users / portfolios / holdings) need portfolio gauges after app redeploy.
+      Domain tiles need gauges published by this app after redeploy.
 
   - id: trace_latency_p95
     signal: trace_latency_p95
@@ -316,6 +316,102 @@ panels:
     theme: teal
     unit: short
     decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: websocket_sessions_active
+    signal: websocket_sessions_active
+    title: WS sessions
+    type: bargauge
+    theme: cyan
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: stomp_connect_total
+    signal: stomp_connect_total
+    title: STOMP connects
+    type: bargauge
+    theme: purple
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: stream_relay_messages_total
+    signal: stream_relay_messages_total
+    title: Stream relays
+    type: bargauge
+    theme: teal
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: orchestrator_events_total
+    signal: orchestrator_events_total
+    title: Orchestrator events
+    type: bargauge
+    theme: cyan
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: dashboard_widget_publish_total
+    signal: dashboard_widget_publish_total
+    title: Widget publishes
+    type: bargauge
+    theme: purple
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: portfolio_stream_publish_total
+    signal: portfolio_stream_publish_total
+    title: Portfolio streams
+    type: bargauge
+    theme: teal
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: tool_invocations_total
+    signal: tool_invocations_total
+    title: Tool invocations
+    type: bargauge
+    theme: cyan
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 8
+    height: 5
+
+  - id: tool_duration_p95
+    signal: tool_duration_p95
+    title: Tool p95 · s
+    type: bargauge
+    theme: latency
+    unit: s
+    decimals: 2
     orientation: horizontal
     display_mode: gradient
     width: 8

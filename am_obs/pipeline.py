@@ -17,7 +17,6 @@ from am_obs.compose import (
     target_from_manifest,
 )
 from am_obs.loader import Context, load_context
-from am_obs.manifest import resolve_manifest_signals
 from am_obs.paths import ROOT, load_yaml
 from am_obs.publish import publish_grafana_configmap
 from am_obs.render import render_grafana
@@ -174,7 +173,6 @@ def generate_shared(
     default_enabled: dict[str, str] | None = None
     default_first: dict[str, str] | None = None
     warnings_all: list[str] = []
-    functional_uses_union: set[str] = set()
 
     for entry in entries:
         sid = entry["id"]
@@ -210,8 +208,6 @@ def generate_shared(
 
         target = target_from_manifest(manifest)
         targets.append(target)
-        resolved = resolve_manifest_signals(manifest, ctx)
-        functional_uses_union.update(resolved.functional)
         if default_first is None:
             default_first = target
         if entry.get("enabled") and default_enabled is None:
@@ -248,13 +244,10 @@ def generate_shared(
         )
     )
 
-    # Functional / Services (product latency + usage)
-    functional_uses = set(functional_uses_union)
-    if functional_uses:
-        # Keep shared functional baseline visible even when only domain KPIs are declared.
-        functional_uses.add("biz_slow_api_table")
-    functional_uses = functional_uses or None
-    func_ir, fw1 = compose_shared_functional(targets, ctx, default=default, uses=functional_uses)
+    # Functional / Services — full template (usage + latency + all domain tiles).
+    # Domain gauges use `or vector(0)` so services without meters still show 0.
+    # Per-service observability.yaml domain: lists remain a doctor/CI contract only.
+    func_ir, fw1 = compose_shared_functional(targets, ctx, default=default, uses=None)
     warnings_all.extend(fw1)
     if func_ir:
         func_adapted, fw2 = adapt(func_ir, ctx)
