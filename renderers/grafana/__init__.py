@@ -963,8 +963,9 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
     if metrics.get("datasource_uid"):
         ds_uid = str(metrics["datasource_uid"])
 
-    # Plane A: Service = whatever Prometheus already knows (Micrometer application=).
-    # Pods are joined from the same series (kubernetes-pods scrape stamps pod=).
+    # Plane A: Service = any series that carries application= (Java JVM + Python
+    # Plane A metrics). Prefer a label selector over JVM-only discovery so
+    # am-logging / am-asrax-proxy appear alongside portfolio-app.
     app_current = (
         {"selected": True, "text": application, "value": application}
         if application
@@ -984,7 +985,7 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 "Service",
                 query=(
                     "label_values("
-                    'jvm_memory_used_bytes{namespace="$namespace"}, application)'
+                    '{namespace="$namespace",application=~".+"}, application)'
                 ),
                 datasource_uid=ds_uid,
                 include_all=False,
@@ -999,8 +1000,7 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 "Pod",
                 query=(
                     "label_values("
-                    'jvm_memory_used_bytes{namespace="$namespace",'
-                    'application="$application"}, pod)'
+                    '{namespace="$namespace",application="$application"}, pod)'
                 ),
                 datasource_uid=ds_uid,
                 multi=True,
@@ -1008,14 +1008,14 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
                 include_all=True,
                 all_value=None,
             ),
-            # HTTP only — Method / API path do not affect dep panels
+            # HTTP only — Method / API path (Java Micrometer + Python Plane A)
             _var_prom_label(
                 "method",
                 "HTTP method",
                 query=(
                     "label_values("
-                    'http_server_requests_seconds_count{application="$application",'
-                    'namespace="$namespace",uri!~".*actuator.*"}, method)'
+                    '{__name__=~"http_server_requests_seconds_count|http_requests_total",'
+                    'application="$application",namespace="$namespace"}, method)'
                 ),
                 datasource_uid=ds_uid,
             ),

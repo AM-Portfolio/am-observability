@@ -58,12 +58,15 @@ def test_metrics_application_as_grafana_var():
     assert by_name["application"]["hide"] == 0
     assert by_name["application"]["includeAll"] is False
     assert "label_values(" in by_name["application"]["query"]
-    assert "jvm_memory_used_bytes" in by_name["application"]["query"]
+    assert 'application=~".+"' in by_name["application"]["query"]
+    assert "jvm_memory_used_bytes" not in by_name["application"]["query"]
     assert by_name["pod"]["type"] == "query"
     assert by_name["pod"]["hide"] == 2
     assert by_name["pod"]["multi"] is True
     assert by_name["pod"]["includeAll"] is True
     assert "allValue" not in by_name["pod"]
+    assert "jvm_memory_used_bytes" not in by_name["pod"]["query"]
+    assert 'application="$application"' in by_name["pod"]["query"]
     assert by_name["application"]["current"]["value"] == "portfolio-app"
     # Section rows + API table + logs at bottom (errors before all logs)
     types = [p["type"] for p in dashboard["panels"]]

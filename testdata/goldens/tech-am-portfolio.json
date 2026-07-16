@@ -6936,8 +6936,8 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(jvm_memory_used_bytes{namespace=\"$namespace\"}, application)",
-        "query": "label_values(jvm_memory_used_bytes{namespace=\"$namespace\"}, application)",
+        "definition": "label_values({namespace=\"$namespace\",application=~\".+\"}, application)",
+        "query": "label_values({namespace=\"$namespace\",application=~\".+\"}, application)",
         "refresh": 2,
         "sort": 1,
         "regex": "",
@@ -6959,8 +6959,8 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(jvm_memory_used_bytes{namespace=\"$namespace\",application=\"$application\"}, pod)",
-        "query": "label_values(jvm_memory_used_bytes{namespace=\"$namespace\",application=\"$application\"}, pod)",
+        "definition": "label_values({namespace=\"$namespace\",application=\"$application\"}, pod)",
+        "query": "label_values({namespace=\"$namespace\",application=\"$application\"}, pod)",
         "refresh": 2,
         "sort": 1,
         "regex": "",
@@ -6982,8 +6982,8 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(http_server_requests_seconds_count{application=\"$application\",namespace=\"$namespace\",uri!~\".*actuator.*\"}, method)",
-        "query": "label_values(http_server_requests_seconds_count{application=\"$application\",namespace=\"$namespace\",uri!~\".*actuator.*\"}, method)",
+        "definition": "label_values({__name__=~\"http_server_requests_seconds_count|http_requests_total\",application=\"$application\",namespace=\"$namespace\"}, method)",
+        "query": "label_values({__name__=~\"http_server_requests_seconds_count|http_requests_total\",application=\"$application\",namespace=\"$namespace\"}, method)",
         "refresh": 2,
         "sort": 1,
         "regex": "",
