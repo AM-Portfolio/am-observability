@@ -823,9 +823,16 @@ _RENDERERS = {
 
 
 def _var_custom(name: str, label: str, value: str, options: list[str]) -> dict[str, Any]:
-    opts = [{"selected": v == value, "text": v, "value": v} for v in options]
+    def _opt_text(v: str) -> str:
+        if name == "section" and v == ".*":
+            return "All"
+        return v
+
+    opts = [
+        {"selected": v == value, "text": _opt_text(v), "value": v} for v in options
+    ]
     if value not in options:
-        opts.insert(0, {"selected": True, "text": value, "value": value})
+        opts.insert(0, {"selected": True, "text": _opt_text(value), "value": value})
     return {
         "name": name,
         "label": label,
@@ -834,7 +841,7 @@ def _var_custom(name: str, label: str, value: str, options: list[str]) -> dict[s
         "multi": False,
         "includeAll": False,
         "query": ",".join(dict.fromkeys([value, *options])),
-        "current": {"selected": True, "text": value, "value": value},
+        "current": {"selected": True, "text": _opt_text(value), "value": value},
         "options": opts,
     }
 

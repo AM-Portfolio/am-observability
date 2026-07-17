@@ -18,6 +18,10 @@ GRAFANA_TEMPLATE_VARS = frozenset(
         "topic",
         "consumergroup",
         "platform",
+        # Product / Flutter boards — must stay as Grafana vars (do not bake .*).
+        "section",
+        "user_id",
+        "portfolio_id",
     }
 )
 

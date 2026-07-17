@@ -302,7 +302,7 @@ signals:
         expr_template: >-
           quantile_over_time(0.95,
             {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
-            | json | unwrap duration_ms [$__interval]
+            | json | section=~"$section" | unwrap duration_ms [$__interval]
           ) by (platform)
 
   product_api_timing_avg_by_section:
@@ -349,7 +349,7 @@ signals:
           sum by (status) (
             count_over_time(
               {job="am-product-telemetry", event="api_timing", env=~"$env", platform=~"$platform"}
-              | json | status != "" [$__interval]
+              | json | section=~"$section" | status != "" [$__interval]
             )
           )
 
