@@ -565,7 +565,9 @@ signals:
         expr_template: >-
           sum(count_over_time(
             {job="am-product-telemetry", event="screen_view", env=~"$env", platform=~"$platform"}
-            | json | section="subscription" | user_id=~"$user_id" [$__range]
+            | json
+            | section="subscription" or screen=~"/app/subscription.*"
+            | user_id=~"$user_id" [$__range]
           ))
 
   product_subscription_cta:

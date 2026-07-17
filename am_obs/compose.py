@@ -361,7 +361,7 @@ def compose_shared_functional(
 def compose_shared_product(
     ctx: Context,
     *,
-    env: str = "preprod",
+    env: str = "prod",
     template: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """Product dashboards — Flutter telemetry via Loki (no Service dropdown)."""
@@ -372,6 +372,7 @@ def compose_shared_product(
 
     panels_out = _panel_candidates(ctx, template=template, uses=None, warnings=warnings)
 
+    # Default Env=prod: live UI traffic is on am.asrax.in / am-dev; preprod UI is scaled to 0.
     ir = {
         "apiVersion": "am.obs/v1",
         "kind": "Dashboard",
@@ -381,7 +382,7 @@ def compose_shared_product(
         "folder": str(template.get("folder") or "AM / Product"),
         "grafana_folder_path": "product",
         "service": "am-modern-ui",
-        "namespace": "am-apps-preprod",
+        "namespace": "am-apps-prod",
         "app": "am-modern-ui",
         "application": "am-modern-ui",
         "env": env,
@@ -389,14 +390,14 @@ def compose_shared_product(
         "panels": panels_out,
         "vars": {
             "service": "am-modern-ui",
-            "namespace": "am-apps-preprod",
+            "namespace": "am-apps-prod",
             "app": "am-modern-ui",
             "application": "am-modern-ui",
             "env": env,
-            "platform": ".+",
-            "section": ".+",
-            "user_id": ".+",
-            "portfolio_id": ".+",
+            "platform": ".*",
+            "section": ".*",
+            "user_id": ".*",
+            "portfolio_id": ".*",
         },
     }
     return ir, warnings

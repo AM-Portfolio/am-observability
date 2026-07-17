@@ -266,7 +266,9 @@ def generate_shared(
         )
 
     # Product / Users — Flutter telemetry (Loki); independent of Java Service dropdown
-    prod_env = env_from_namespace(default["namespace"]) if default else "preprod"
+    # Product boards filter Loki env= label (Flutter), not k8s namespace.
+    # Prefer prod: that is where am.asrax.in traffic lands; preprod UI is often scaled to 0.
+    prod_env = "prod"
     prod_ir, pw1 = compose_shared_product(ctx, env=prod_env)
     warnings_all.extend(pw1)
     if prod_ir:

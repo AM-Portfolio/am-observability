@@ -991,7 +991,7 @@ def _var_loki_label(
 
 def _templating_product(ir: dict[str, Any]) -> dict[str, Any]:
     """Env + Platform + Section + User + Portfolio filters for Product boards."""
-    env = str((ir.get("vars") or {}).get("env") or ir.get("env") or "preprod")
+    env = str((ir.get("vars") or {}).get("env") or ir.get("env") or "prod")
     ds_uid = "loki"
     inputs = ir.get("bindings_inputs") or {}
     logs = inputs.get("logs") or {}
