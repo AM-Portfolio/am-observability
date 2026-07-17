@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -16,6 +18,14 @@ GOLDENS = ROOT / "testdata" / "goldens"
 FIXTURES = ROOT / "testdata" / "fixtures"
 
 
+def iter_panels(panels: list[dict[str, Any]] | None) -> Iterator[dict[str, Any]]:
+    """Yield every panel including children nested under collapsed rows."""
+    for panel in panels or []:
+        yield panel
+        if panel.get("type") == "row":
+            yield from iter_panels(panel.get("panels") or [])
+
+
 def test_metrics_application_as_grafana_var():
     """application stays a Grafana $var (not baked) so the Metrics application filter works."""
     ctx = load_context()
@@ -23,7 +33,7 @@ def test_metrics_application_as_grafana_var():
     dashboard, _, _, err = generate_one(manifest, ctx, source="fixture")
     assert err is None and dashboard is not None
     exprs = []
-    for panel in dashboard["panels"]:
+    for panel in iter_panels(dashboard["panels"]):
         for t in panel.get("targets") or []:
             if "expr" in t:
                 exprs.append(t["expr"])
@@ -69,36 +79,82 @@ def test_metrics_application_as_grafana_var():
     assert 'application="$application"' in by_name["pod"]["query"]
     assert by_name["application"]["current"]["value"] == "portfolio-app"
     # Section rows + API table + logs at bottom (errors before all logs)
-    types = [p["type"] for p in dashboard["panels"]]
+    all_panels = list(iter_panels(dashboard["panels"]))
+    types = [p["type"] for p in all_panels]
     assert "row" in types
     assert "table" in types
     assert "gauge" in types
     assert "text" in types
-    # Decision strip present
-    titles = [p["title"] for p in dashboard["panels"]]
+    # Decision strip present at top level; later sections nested under collapsed rows
+    titles = [p["title"] for p in all_panels]
     assert "Health score" in titles
     assert "Decision" in titles
     assert any("Action checklist" == t or "Action checklist" in t for t in titles)
     assert "Helm chart" in titles
     assert any("Hikari" in t for t in titles)
+    top_titles = [p["title"] for p in dashboard["panels"]]
+    assert "Health score" in top_titles
+    assert "Helm chart" not in top_titles  # nested under collapsed Service health
     # Dep filters only in dep exprs; HTTP still uses method/uri
     assert "$mongo_command" in joined or 'command=~"$mongo_command"' in joined
     assert "$kafka_topic" in joined or 'topic=~"$kafka_topic"' in joined
-    log_titles = [p["title"] for p in dashboard["panels"] if p["type"] == "logs"]
+    log_titles = [p["title"] for p in all_panels if p["type"] == "logs"]
     assert log_titles == ["Error logs", "Logs"]
     # Glass KPIs: color the value; Decision/Scrape keep solid wash
-    pods = next(p for p in dashboard["panels"] if p["title"] == "Pods")
+    pods = next(p for p in all_panels if p["title"] == "Pods")
     assert pods["options"]["colorMode"] == "value"
     assert pods.get("transparent") is True
-    decision = next(p for p in dashboard["panels"] if p["title"] == "Decision")
+    decision = next(p for p in all_panels if p["title"] == "Decision")
     assert decision["options"]["colorMode"] == "background"
-    scrape = next(p for p in dashboard["panels"] if p["title"] == "Scrape up")
+    scrape = next(p for p in all_panels if p["title"] == "Scrape up")
     assert scrape["options"]["colorMode"] == "background"
     # API table includes p75
-    api = next(p for p in dashboard["panels"] if p["type"] == "table" and "API" in p["title"])
+    api = next(p for p in all_panels if p["type"] == "table" and "API" in p["title"])
     legends = [t.get("refId") for t in api.get("targets") or []]
     assert "P75" in legends
     assert "S5xx" in legends
+
+
+def test_collapsed_rows_nest_children():
+    """Collapsed rows nest children so Grafana defers those queries until expand."""
+    ctx = load_context()
+    manifest = yaml.safe_load((FIXTURES / "am-portfolio.yaml").read_text(encoding="utf-8"))
+    dashboard, _, _, err = generate_one(manifest, ctx, source="fixture")
+    assert err is None and dashboard is not None
+
+    rows = [p for p in dashboard["panels"] if p.get("type") == "row"]
+    by_title = {r["title"]: r for r in rows}
+    decision = by_title["0 · Quick decision"]
+    health = by_title["1 · Service health"]
+    assert decision.get("collapsed") is False
+    assert health.get("collapsed") is True
+    nested_titles = [p["title"] for p in health.get("panels") or []]
+    assert "Pods" in nested_titles
+    assert "Helm chart" in nested_titles
+    # Nested panels must not also appear at dashboard top level
+    top_titles = {p["title"] for p in dashboard["panels"]}
+    assert "Pods" not in top_titles
+
+    # Product / Flutter Technical: only dwell query panels active initially
+    rc = generate()
+    assert rc == 0
+    flutter_path = ROOT / "dist" / "grafana" / "product-am-flutter-technical.yaml"
+    assert flutter_path.is_file()
+    cm = yaml.safe_load(flutter_path.read_text(encoding="utf-8"))
+    dash_key = next(k for k in (cm.get("data") or {}) if k.endswith(".json"))
+    dash = json.loads(cm["data"][dash_key])
+    top = dash["panels"]
+    top_query_titles = [
+        p["title"]
+        for p in top
+        if p.get("type") not in ("row", "text") and p.get("targets")
+    ]
+    assert "Screens - avg dwell ms" in top_query_titles
+    assert "Widgets - avg timing ms" in top_query_titles
+    assert "API - p95 ms" not in top_query_titles
+    api_row = next(p for p in top if p.get("title") == "2 - Client API + boot")
+    assert api_row.get("collapsed") is True
+    assert any(c.get("title") == "API - p95 ms" for c in api_row.get("panels") or [])
 
 
 def test_shared_services_dashboard():
@@ -162,13 +218,13 @@ def test_compose_intersection_tier_b_no_red():
     # Ignore row titles / markdown blurbs — assert no HTTP/JVM *metric* panels
     metric_titles = [
         p["title"].lower()
-        for p in dashboard["panels"]
+        for p in iter_panels(dashboard["panels"])
         if p["type"] in ("timeseries", "stat", "gauge", "table")
     ]
     joined = " ".join(metric_titles)
     assert "request rate" not in joined
     assert "heap" not in joined
-    assert any(p["type"] == "logs" for p in dashboard["panels"])
+    assert any(p["type"] == "logs" for p in iter_panels(dashboard["panels"]))
 
 
 def test_functional_shared_published():

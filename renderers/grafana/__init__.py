@@ -1200,14 +1200,32 @@ def _templating(ir: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def render(ir: dict[str, Any]) -> dict[str, Any]:
-    """Render adapted IR → Grafana dashboard JSON."""
-    panels = []
-    for idx, panel in enumerate(ir.get("panels") or [], start=1):
+def _nest_collapsed_rows(ir_panels: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Nest panels under collapsed rows so Grafana defers their queries.
+
+    Expanded-row children stay top-level (Grafana layout). Collapsed-row
+    children go in the row's ``panels`` array until the next row.
+    """
+    out: list[dict[str, Any]] = []
+    collapsed_row: dict[str, Any] | None = None
+    for idx, panel in enumerate(ir_panels, start=1):
         ptype = panel.get("type") or "timeseries"
         renderer = _RENDERERS.get(ptype, _timeseries_panel)
-        # Pass optional viz hints from template through unchanged
-        panels.append(renderer(panel, idx))
+        rendered = renderer(panel, idx)
+        if ptype == "row":
+            out.append(rendered)
+            collapsed_row = rendered if rendered.get("collapsed") else None
+            continue
+        if collapsed_row is not None:
+            collapsed_row.setdefault("panels", []).append(rendered)
+        else:
+            out.append(rendered)
+    return out
+
+
+def render(ir: dict[str, Any]) -> dict[str, Any]:
+    """Render adapted IR → Grafana dashboard JSON."""
+    panels = _nest_collapsed_rows(ir.get("panels") or [])
 
     tags = list(ir.get("tags") or [])
     if ir.get("dashboard_kind") == "platform":

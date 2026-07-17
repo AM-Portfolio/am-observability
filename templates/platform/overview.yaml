@@ -56,6 +56,7 @@ panels:
   - id: row_resources
     type: row
     title: "1 · Resources by pod"
+    collapsed: true
 
   - id: platform_ns_cpu
     signal: platform_ns_cpu
@@ -80,6 +81,7 @@ panels:
   - id: row_logs
     type: row
     title: "2 · Logs"
+    collapsed: true
 
   - id: platform_ns_error_logs
     signal: platform_ns_error_logs

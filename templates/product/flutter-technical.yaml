@@ -50,6 +50,7 @@ panels:
   - id: row_api
     type: row
     title: "2 - Client API + boot"
+    collapsed: true
 
   - id: product_api_timing_p95
     signal: product_api_timing_p95
@@ -93,6 +94,7 @@ panels:
   - id: row_errors
     type: row
     title: "3 - Client errors"
+    collapsed: true
 
   - id: product_client_errors
     signal: product_client_errors

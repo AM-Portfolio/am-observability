@@ -57,6 +57,7 @@ panels:
   - id: row_health
     type: row
     title: "1 · Service health"
+    collapsed: true
 
   - id: text_health
     type: text
@@ -174,6 +175,7 @@ panels:
   - id: row_golden
     type: row
     title: "2 · Golden Signals (filter by Method + API path · All = sum)"
+    collapsed: true
 
   - id: text_golden
     type: text
@@ -348,6 +350,7 @@ panels:
   - id: row_api_table
     type: row
     title: "3 · API SLO table (also respects Method + API path filter)"
+    collapsed: true
 
   - id: text_api_table
     type: text
@@ -926,6 +929,7 @@ panels:
   - id: row_traces
     type: row
     title: "8 · Evidence — traces & logs"
+    collapsed: true
 
   - id: text_evidence
     type: text

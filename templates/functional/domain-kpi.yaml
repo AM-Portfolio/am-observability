@@ -62,6 +62,7 @@ panels:
   - id: row_slow
     type: row
     title: "2 · Slow APIs — is the product too slow?"
+    collapsed: true
 
   - id: text_slow
     type: text
@@ -180,6 +181,7 @@ panels:
   - id: row_success
     type: row
     title: "3 · Succeeding?"
+    collapsed: true
 
   - id: text_success
     type: text
@@ -253,6 +255,7 @@ panels:
   - id: row_act
     type: row
     title: "4 · Act"
+    collapsed: true
 
   - id: text_act
     type: text
@@ -275,7 +278,7 @@ panels:
   - id: row_domain
     type: row
     title: "5 · Domain KPIs (this service)"
-    collapsed: false
+    collapsed: true
 
   - id: text_domain
     type: text

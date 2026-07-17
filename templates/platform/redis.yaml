@@ -53,6 +53,7 @@ panels:
   - id: row_runtime
     type: row
     title: "1 · Runtime"
+    collapsed: true
 
   - id: infra_redis_clients
     signal: infra_redis_clients

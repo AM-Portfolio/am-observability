@@ -43,6 +43,7 @@ panels:
   - id: row_runtime
     type: row
     title: "1 · Runtime"
+    collapsed: true
 
   - id: infra_postgres_connections
     signal: infra_postgres_connections

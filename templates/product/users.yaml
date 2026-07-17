@@ -85,6 +85,7 @@ panels:
   - id: row_platform
     type: row
     title: "2 - Web vs Android vs iOS"
+    collapsed: true
 
   - id: text_platform
     type: text
@@ -172,6 +173,7 @@ panels:
   - id: row_sections
     type: row
     title: "3 - Sections liked (screen_view)"
+    collapsed: true
 
   - id: text_sections
     type: text
@@ -226,6 +228,7 @@ panels:
   - id: row_portfolio
     type: row
     title: "4 - Portfolio deep-dive"
+    collapsed: true
 
   - id: text_portfolio
     type: text
@@ -330,6 +333,7 @@ panels:
   - id: row_actions
     type: row
     title: "5 - Feature actions"
+    collapsed: true
 
   - id: text_actions
     type: text
@@ -366,6 +370,7 @@ panels:
   - id: row_rum
     type: row
     title: "6 - Client speed (RUM)"
+    collapsed: true
 
   - id: text_rum
     type: text
@@ -441,6 +446,7 @@ panels:
   - id: row_auth_sub
     type: row
     title: "6b - Auth + Subscription interest"
+    collapsed: true
 
   - id: text_auth_sub
     type: text
@@ -515,6 +521,7 @@ panels:
   - id: row_act
     type: row
     title: "7 - Act"
+    collapsed: true
 
   - id: text_act
     type: text

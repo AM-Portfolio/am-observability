@@ -70,6 +70,7 @@ panels:
   - id: row_topic
     type: row
     title: "1 · Topic traffic ($topic)"
+    collapsed: true
 
   - id: infra_kafka_msg_in_by_topic
     signal: infra_kafka_msg_in_by_topic
@@ -120,6 +121,7 @@ panels:
   - id: row_consumer
     type: row
     title: "2 · Consumer groups ($consumergroup · $topic)"
+    collapsed: true
 
   - id: infra_kafka_cg_lag_sum
     signal: infra_kafka_cg_lag_sum
