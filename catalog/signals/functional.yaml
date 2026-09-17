@@ -206,3 +206,27 @@ signals:
         expr_template: "histogram_quantile(0.95,\n  sum by (le) (\n    rate(tool_duration_seconds_bucket{application=\"\
           $application\",namespace=\"$namespace\"}[$__rate_interval])\n  )\n) or vector(0)"
         legend: p95
+  trade_processed_total:
+    id: trade_processed_total
+    kind: metric
+    description: Trades processed in selected range
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "sum(\n  increase(trade_processed_total{application=\"$application\",namespace=\"$namespace\"}[$__range])\n) or vector(0)"
+        legend: Trades
+  trade_processing_duration_seconds:
+    id: trade_processing_duration_seconds
+    kind: metric
+    description: Trade processing p95 duration (seconds)
+    panel_type: stat
+    adapters:
+    - prometheus
+    optional: true
+    adapter_map:
+      prometheus:
+        expr_template: "histogram_quantile(0.95,\n  sum by (le) (\n    rate(trade_processing_duration_seconds_bucket{application=\"$application\",namespace=\"$namespace\"}[$__rate_interval])\n  )\n) or vector(0)"
+        legend: p95

@@ -1,0 +1,15 @@
+apiVersion: am.obs/v1
+kind: ServiceObservability
+service: am-trade-management
+tier: A
+runtime: java
+k8s_app_label: am-trade-management
+# spring.application.name → Prom label application=
+metrics_application: am-trade-management
+namespace: am-apps-preprod
+owners: [trade]
+signals:
+  bundle: tier-a-java-core
+  domain:
+    - trade_processed_total
+    - trade_processing_duration_seconds
