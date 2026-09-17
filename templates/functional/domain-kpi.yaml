@@ -420,3 +420,26 @@ panels:
     display_mode: gradient
     width: 8
     height: 5
+  - id: trade_processed_total
+    signal: trade_processed_total
+    title: Trades processed
+    type: bargauge
+    theme: cyan
+    unit: short
+    decimals: 0
+    orientation: horizontal
+    display_mode: gradient
+    width: 6
+    height: 5
+
+  - id: trade_processing_duration_seconds
+    signal: trade_processing_duration_seconds
+    title: Trade p95 · s
+    type: bargauge
+    theme: latency
+    unit: s
+    decimals: 2
+    orientation: horizontal
+    display_mode: gradient
+    width: 6
+    height: 5
